@@ -18,12 +18,13 @@ function Register() {
       justifyContent="center"
       alignItems="center"
       height="100vh"
-      bgColor="gray.100"
+      bgColor="bgColor.300"
     >
       <Card
         display="flex"
         flexDirection="row"
-        bgColor="red.50"
+        bgColor="bgColor.100"
+        color="textColor.100"
         gap={8}
         p={8}
         borderRadius="md"
@@ -41,6 +42,8 @@ function Register() {
                 placeholder="Username"
                 autoComplete="off"
                 isRequired
+                focusBorderColor="primary.100"
+                borderColor="bgColor.400"
               />
             </FormControl>
             <FormControl mt={4}>
@@ -50,6 +53,8 @@ function Register() {
                 placeholder="Email"
                 autoComplete="off"
                 isRequired
+                focusBorderColor="primary.100"
+                borderColor="bgColor.400"
               />
             </FormControl>
             <FormControl mt={4}>
@@ -58,13 +63,16 @@ function Register() {
                 name="password"
                 placeholder="Password"
                 isRequired
+                focusBorderColor="primary.100"
+                borderColor="bgColor.400"
               />
             </FormControl>
             <Button
               type="submit"
               mt={4}
-              colorScheme="blue"
-              variant="outline"
+              bgColor="primary.500"
+              color="primary.50"
+              _hover={{ bgColor: "primary.600" }}
               w="full"
             >
               Login

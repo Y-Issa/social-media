@@ -25,18 +25,20 @@ function Login() {
     console.log(formData);
     login();
   }
+
   return (
     <Box
       display="flex"
       justifyContent="center"
       alignItems="center"
-      bgColor="gray.100"
-      h="100vh"
+      height="100vh"
+      bgColor="bgColor.300"
     >
       <Card
         display="flex"
         flexDirection="row"
-        bgColor="red.50"
+        bgColor="bgColor.100"
+        color="textColor.100"
         gap={8}
         p={8}
         borderRadius="md"
@@ -62,7 +64,7 @@ function Login() {
           </Button>
         </VStack>
 
-        <VStack spacing={4} align={{ base: "center", sm: "start" }}>
+        <VStack spacing={4} w="full">
           <Heading size={{ base: "md", lg: "2xl" }}>Sign In</Heading>
           <Form onSubmit={handleSubmit}>
             <FormControl>
@@ -73,6 +75,8 @@ function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 isRequired
+                focusBorderColor="primary.100"
+                borderColor="bgColor.400"
               />
             </FormControl>
             <FormControl mt={4}>
@@ -82,13 +86,17 @@ function Login() {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                isRequired
+                focusBorderColor="primary.100"
+                borderColor="bgColor.400"
               />
             </FormControl>
             <Button
               type="submit"
               mt={4}
-              colorScheme="blue"
-              variant="outline"
+              bgColor="primary.500"
+              color="primary.50"
+              _hover={{ bgColor: "primary.600" }}
               w="full"
             >
               Login

@@ -12,7 +12,13 @@ import { HiMail } from "react-icons/hi";
 
 function Leftbar() {
   return (
-    <VStack p="5px" alignItems="start" gap={2}>
+    <VStack
+      p="15px"
+      alignItems="start"
+      gap={2}
+      bgColor="bgColor.50"
+      minH="92vh"
+    >
       <HStack>
         <Avatar size="sm" />
         <Text>UserName</Text>
@@ -38,7 +44,7 @@ function Leftbar() {
         <Text>Memories</Text>
       </HStack>
 
-      <Divider />
+      <Divider borderColor="bgColor.400" />
 
       <HStack pt="10px">
         <FcCalendar size="30px" />

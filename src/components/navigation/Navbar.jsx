@@ -1,5 +1,6 @@
 import {
   Avatar,
+  Button,
   HStack,
   Heading,
   Input,
@@ -18,27 +19,33 @@ import {
   HiOutlineUser,
 } from "react-icons/hi2";
 import { Link } from "react-router-dom";
+import { useDarkMode } from "../../contexts/DarkModeContext";
 
 function Navbar() {
+  const { isDark, toggleDarkMode } = useDarkMode();
   return (
     <HStack
       gap={2}
       minH="8vh"
       px="10px"
+      bgColor="bgColor.50"
+      color="textColor.100"
       borderBottom="1px"
-      borderColor="lightgray"
+      borderColor="bgColor.400"
     >
       <Heading size="md" display={{ base: "none", sm: "block" }}>
         <Link to="/">Communet</Link>
       </Heading>
       <HStack gap={1}>
         <HiOutlineHome />
-        <HiOutlineMoon />
+        <Button variant="ghost" onClick={toggleDarkMode}>
+          {isDark ? <HiOutlineSun /> : <HiOutlineMoon />}
+        </Button>
         <HiOutlineSquares2X2 />
       </HStack>
-      <InputGroup maxW="440px">
+      <InputGroup maxW="440px" borderColor="bgColor.400">
         <InputLeftElement children={<HiOutlineSearch />} />
-        <Input placeholder="Search" />
+        <Input placeholder="Search" focusBorderColor="primary.100" />
       </InputGroup>
       <Spacer />
       <HStack gap={1}>

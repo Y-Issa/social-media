@@ -12,7 +12,8 @@ function RootLayout() {
         templateColumns="repeat(8, 1fr)"
         gap={2}
         overflow="hidden"
-        bgColor="gray.50"
+        bgColor="bgColor.200"
+        color="textColor.100"
       >
         <GridItem
           as="aside"

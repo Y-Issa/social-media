@@ -11,9 +11,15 @@ import {
 
 function OnlineFriends() {
   return (
-    <Card w="full" my="10px" bgColor="white" borderRadius="sm">
-      <CardHeader py="5px" color="gray.500">
-        Latest Activities
+    <Card
+      w="full"
+      my="10px"
+      bgColor="bgColor.50"
+      color="textColor.100"
+      borderRadius="sm"
+    >
+      <CardHeader py="5px" color="textColor.300">
+        Online Friends
       </CardHeader>
       <CardBody fontSize="sm">
         <HStack mb="10px">
