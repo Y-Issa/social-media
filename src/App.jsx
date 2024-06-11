@@ -12,14 +12,15 @@ import { ChakraProvider } from "@chakra-ui/react";
 import { AuthProvider } from "./contexts/AuthContext";
 import { useDarkMode } from "./contexts/DarkModeContext";
 import { theme_dark, theme_light } from "./theme";
+import Home from "./pages/Home";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
-      <Route index element={<Login />} />
       <Route path="login" element={<Login />} />
       <Route path="register" element={<Register />} />
       <Route path="/" element={<RootLayout />}>
+        <Route index element={<Home />} />
         <Route path="profile/" element={<Profile />} />
       </Route>
     </>

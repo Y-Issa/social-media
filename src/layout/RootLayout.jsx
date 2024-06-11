@@ -9,7 +9,7 @@ function RootLayout() {
     <>
       <Navbar />
       <Grid
-        templateColumns="repeat(8, 1fr)"
+        templateColumns="repeat(10, 1fr)"
         gap={2}
         overflow="hidden"
         bgColor="bgColor.200"
@@ -18,15 +18,15 @@ function RootLayout() {
         <GridItem
           as="aside"
           display={{ base: "none", md: "block" }}
-          colSpan={{ md: 1, xl: 1 }}
+          colSpan={{ md: 2, xl: 2 }}
         >
           <Leftbar />
         </GridItem>
 
         <GridItem
           as="main"
-          colSpan={{ base: 8, md: 4, xl: 5 }}
-          maxH="92vh"
+          colSpan={{ base: 10, md: 5, xl: 5 }}
+          maxH="91vh"
           overflowY="scroll"
           sx={{
             "&::-webkit-scrollbar": {
@@ -36,7 +36,7 @@ function RootLayout() {
               width: "6px",
             },
             "&::-webkit-scrollbar-thumb": {
-              background: "gray.300",
+              background: "bgColor.500",
               borderRadius: "full",
             },
           }}
@@ -46,7 +46,7 @@ function RootLayout() {
 
         <GridItem
           display={{ base: "none", md: "block" }}
-          colSpan={{ md: 3, xl: 2 }}
+          colSpan={{ md: 3, xl: 3 }}
         >
           <Rightbar />
         </GridItem>

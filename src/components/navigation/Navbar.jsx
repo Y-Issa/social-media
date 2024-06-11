@@ -27,6 +27,7 @@ function Navbar() {
     <HStack
       gap={2}
       minH="8vh"
+      py="5px"
       px="10px"
       bgColor="bgColor.50"
       color="textColor.100"
@@ -38,7 +39,11 @@ function Navbar() {
       </Heading>
       <HStack gap={1}>
         <HiOutlineHome />
-        <Button variant="ghost" onClick={toggleDarkMode}>
+        <Button
+          variant="ghost"
+          _hover={{ bgColor: "bgColor.400" }}
+          onClick={toggleDarkMode}
+        >
           {isDark ? <HiOutlineSun /> : <HiOutlineMoon />}
         </Button>
         <HiOutlineSquares2X2 />
