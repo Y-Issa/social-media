@@ -22,7 +22,7 @@ import { useAuth } from "../../contexts/AuthContext";
 function CommentsModal() {
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-  const { TEMPUSER } = useAuth();
+  const { user } = useAuth();
   return (
     <>
       <Button
@@ -51,7 +51,7 @@ function CommentsModal() {
           <ModalFooter>
             <FormControl>
               <InputGroup gap="10px" alignItems="center">
-                <Avatar size="sm" src={TEMPUSER.image} />
+                <Avatar size="sm" src={user.image} />
                 <Input
                   placeholder="Type your comment..."
                   borderColor="bgColor.400"

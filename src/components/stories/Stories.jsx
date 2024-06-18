@@ -3,7 +3,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { HiOutlinePlus } from "react-icons/hi";
 
 function Stories() {
-  const { TEMPUSER } = useAuth();
+  const { user } = useAuth();
 
   const TEMPSTORIES = [
     {
@@ -40,11 +40,11 @@ function Stories() {
         },
       }}
     >
-      {TEMPUSER && (
+      {user && (
         <Box position="relative" flex={1} minW="100px">
           <Img
-            src={TEMPUSER.image}
-            alt={TEMPUSER.name}
+            src={user.image}
+            alt={user.name}
             h="200px"
             w="full"
             borderRadius="10px"

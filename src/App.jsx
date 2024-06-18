@@ -4,16 +4,19 @@ import {
   createBrowserRouter,
   createRoutesFromElements,
 } from "react-router-dom";
-import Login from "./pages/login";
-import RootLayout from "./layout/RootLayout";
-import Profile from "./pages/profile";
-import Register from "./pages/register";
+
 import { ChakraProvider } from "@chakra-ui/react";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 import { AuthProvider } from "./contexts/AuthContext";
 import { useDarkMode } from "./contexts/DarkModeContext";
 import { theme_dark, theme_light } from "./theme";
 import Home from "./pages/Home";
-
+import Login from "./pages/login";
+import RootLayout from "./layout/RootLayout";
+import Profile from "./pages/profile";
+import Register from "./pages/register";
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
@@ -21,21 +24,25 @@ const router = createBrowserRouter(
       <Route path="register" element={<Register />} />
       <Route path="/" element={<RootLayout />}>
         <Route index element={<Home />} />
-        <Route path="profile/" element={<Profile />} />
+        <Route path="profile/:uid" element={<Profile />} />
       </Route>
     </>
   )
 );
 
+const queryClient = new QueryClient();
+
 function App() {
   const { isDark } = useDarkMode();
 
   return (
-    <ChakraProvider theme={isDark ? theme_dark : theme_light}>
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>
-    </ChakraProvider>
+    <QueryClientProvider client={queryClient}>
+      <ChakraProvider theme={isDark ? theme_dark : theme_light}>
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>
+      </ChakraProvider>
+    </QueryClientProvider>
   );
 }
 

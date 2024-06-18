@@ -8,22 +8,42 @@ import {
   Input,
   VStack,
   Spacer,
+  useToast,
 } from "@chakra-ui/react";
 import { useState } from "react";
-import { Form, Link } from "react-router-dom";
+import { Form, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 function Login() {
+  const navigate = useNavigate();
+  const toast = useToast();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const { login } = useAuth();
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    const formData = { email, password };
-    console.log(formData);
-    login();
+    let localError = null;
+    try {
+      await login({ email, password });
+    } catch (error) {
+      localError = error.response.data;
+    } finally {
+      toast({
+        position: "top",
+        title: localError ? "Error" : "Success",
+        description: localError ? localError : "Logged in successfully",
+        status: localError ? "error" : "success",
+        variant: localError ? "left-accent" : "solid",
+        duration: 4000,
+      });
+      if (!localError) {
+        navigate("/");
+      }
+      localError = null;
+    }
   }
 
   return (

@@ -8,10 +8,42 @@ import {
   Spacer,
   Text,
   VStack,
+  useToast,
 } from "@chakra-ui/react";
+import axios from "axios";
+import { useState } from "react";
 import { Form, Link } from "react-router-dom";
 
 function Register() {
+  const toast = useToast();
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    let localError = null;
+    try {
+      await axios.post("http://localhost:8001/api/auth/register", {
+        name,
+        email,
+        password,
+      });
+    } catch (error) {
+      localError = error.response.data;
+    } finally {
+      toast({
+        position: "top",
+        title: localError ? "Error" : "Success",
+        description: localError ? localError : "Account created successfully",
+        status: localError ? "error" : "success",
+        variant: localError ? "left-accent" : "solid",
+        duration: 4000,
+      });
+    }
+  }
+
   return (
     <Box
       display="flex"
@@ -34,16 +66,18 @@ function Register() {
       >
         <VStack spacing={4} w="full">
           <Heading size={{ base: "md", lg: "2xl" }}>Sign Up</Heading>
-          <Form>
+          <Form onSubmit={handleSubmit}>
             <FormControl>
               <Input
                 type="text"
-                name="username"
-                placeholder="Username"
+                name="name"
+                placeholder="Name"
                 autoComplete="off"
                 isRequired
                 focusBorderColor="primary.100"
                 borderColor="bgColor.400"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
               />
             </FormControl>
             <FormControl mt={4}>
@@ -55,6 +89,8 @@ function Register() {
                 isRequired
                 focusBorderColor="primary.100"
                 borderColor="bgColor.400"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </FormControl>
             <FormControl mt={4}>
@@ -65,6 +101,8 @@ function Register() {
                 isRequired
                 focusBorderColor="primary.100"
                 borderColor="bgColor.400"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </FormControl>
             <Button

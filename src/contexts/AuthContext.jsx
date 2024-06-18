@@ -1,27 +1,36 @@
+import axios from "axios";
 import { createContext, useContext, useState } from "react";
 
 const AuthContext = createContext();
 
 function AuthProvider({ children }) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const TEMPUSER = {
-    name: "user",
-    email: "user@test.com",
-    password: "password123",
-    image:
-      "https://img-cdn.pixlr.com/image-generator/history/65bb506dcb310754719cf81f/ede935de-1138-4f66-8ed7-44bd16efc709/medium.webp",
-  };
+  const [user, setUser] = useState(
+    JSON.parse(localStorage.getItem("user")) || null
+  );
 
-  function login() {
-    setIsLoggedIn(true);
+  async function login({ email, password }) {
+    const response = await axios.post(
+      "http://localhost:8001/api/auth/login",
+      {
+        email,
+        password,
+      },
+      {
+        withCredentials: true,
+      }
+    );
+
+    if (response.status === 200) {
+      localStorage.setItem("token", JSON.stringify(response.data.token));
+      setUser(response.data.user);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
+    }
   }
 
-  function logout() {
-    setIsLoggedIn(false);
-  }
+  function logout() {}
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, login, logout, TEMPUSER }}>
+    <AuthContext.Provider value={{ login, logout, user }}>
       {children}
     </AuthContext.Provider>
   );

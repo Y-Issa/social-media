@@ -26,7 +26,7 @@ function RootLayout() {
         <GridItem
           as="main"
           colSpan={{ base: 10, md: 5, xl: 5 }}
-          maxH="91vh"
+          h="92vh"
           overflowY="scroll"
           sx={{
             "&::-webkit-scrollbar": {
