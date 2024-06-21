@@ -10,9 +10,11 @@ import {
   Img,
   Spacer,
   Text,
+  VStack,
 } from "@chakra-ui/react";
 import { HiHeart, HiOutlineHeart, HiOutlineShare } from "react-icons/hi2";
 import CommentsModal from "./CommentsModal";
+import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
 
 function PostCard({ post }) {
   return (
@@ -25,19 +27,26 @@ function PostCard({ post }) {
     >
       <CardHeader pb="10px" display="flex" gap="15px" alignItems="center">
         <Avatar size="sm" src={post.profileImage} />
-        <Text>{post.name}</Text>
+        <Box>
+          <Text>{post.name}</Text>
+          <Text fontSize="10px" textColor="textColor.300">
+            {formatDistanceToNow(post.createdAt)} ago
+          </Text>
+        </Box>
       </CardHeader>
 
       <CardBody pb="0px">
         <Text mb="10px">{post.description}</Text>
 
-        <Img
-          src={post.image}
-          alt={post.name}
-          w="full"
-          maxH="450px"
-          borderRadius="5px"
-        />
+        {post.image && (
+          <Img
+            src={`http://localhost:8001/public/upload/${post.image}`}
+            alt={post.name}
+            w="full"
+            maxH="450px"
+            borderRadius="5px"
+          />
+        )}
       </CardBody>
       <CardFooter>
         <HStack>
@@ -57,7 +66,7 @@ function PostCard({ post }) {
           <Text>2.2k</Text>
         </HStack>
         <HStack ml="10px">
-          <CommentsModal />
+          <CommentsModal postId={post.postId} />
           <Text>5.6k</Text>
         </HStack>
         <Spacer />

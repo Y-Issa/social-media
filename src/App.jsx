@@ -17,6 +17,7 @@ import Login from "./pages/login";
 import RootLayout from "./layout/RootLayout";
 import Profile from "./pages/profile";
 import Register from "./pages/register";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
@@ -39,6 +40,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ChakraProvider theme={isDark ? theme_dark : theme_light}>
         <AuthProvider>
+          <ReactQueryDevtools initialIsOpen={false} />
           <RouterProvider router={router} />
         </AuthProvider>
       </ChakraProvider>

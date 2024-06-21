@@ -1,28 +1,41 @@
 import {
-  Avatar,
   Button,
-  FormControl,
   Heading,
-  Input,
-  InputGroup,
   Modal,
   ModalBody,
   ModalContent,
-  ModalFooter,
   ModalHeader,
   ModalOverlay,
   useDisclosure,
 } from "@chakra-ui/react";
-import {
-  HiOutlineChatBubbleOvalLeftEllipsis,
-  HiOutlineChevronDoubleRight,
-} from "react-icons/hi2";
+import { HiOutlineChatBubbleOvalLeftEllipsis } from "react-icons/hi2";
 import { useAuth } from "../../contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import Loading from "../Loading";
+import { makeRequest } from "../../axios";
+import CommentList from "./commentList";
+import CommentForm from "./CommentForm";
 
-function CommentsModal() {
+function CommentsModal({ postId }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
-
+  const [comment, setComment] = useState("");
   const { user } = useAuth();
+
+  const { isLoading, error, data } = useQuery({
+    queryKey: ["comments", postId],
+    queryFn: async () => {
+      const token = JSON.parse(localStorage.getItem("token"));
+      const res = await makeRequest.get(`/comments/${postId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return res.data;
+    },
+    enabled: isOpen,
+  });
+
   return (
     <>
       <Button
@@ -42,31 +55,15 @@ function CommentsModal() {
           <ModalHeader>
             <Heading size="md">Comments</Heading>
           </ModalHeader>
-          <ModalBody>
-            <p>Comments will be displayed here</p>
-            <p>Comments will be displayed here</p>
-            <p>Comments will be displayed here</p>
-            <p>Comments will be displayed here</p>
+          <ModalBody px="15px">
+            {isLoading ? <Loading /> : <CommentList comments={data} />}
           </ModalBody>
-          <ModalFooter>
-            <FormControl>
-              <InputGroup gap="10px" alignItems="center">
-                <Avatar size="sm" src={user.image} />
-                <Input
-                  placeholder="Type your comment..."
-                  borderColor="bgColor.400"
-                  focusBorderColor="primary.100"
-                />
-                <Button
-                  bgColor="primary.500"
-                  color="primary.50"
-                  _hover={{ bgColor: "primary.600" }}
-                >
-                  <HiOutlineChevronDoubleRight />
-                </Button>
-              </InputGroup>
-            </FormControl>
-          </ModalFooter>
+          <CommentForm
+            postId={postId}
+            comment={comment}
+            setComment={setComment}
+            user={user}
+          />
         </ModalContent>
       </Modal>
     </>
