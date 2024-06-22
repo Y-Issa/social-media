@@ -6,6 +6,7 @@ import {
   ModalContent,
   ModalHeader,
   ModalOverlay,
+  Text,
   useDisclosure,
 } from "@chakra-ui/react";
 import { HiOutlineChatBubbleOvalLeftEllipsis } from "react-icons/hi2";
@@ -47,16 +48,39 @@ function CommentsModal({ postId }) {
         onClick={onOpen}
       >
         <HiOutlineChatBubbleOvalLeftEllipsis fontSize="24px" />
+        <Text ml={1}>{data?.length} comments</Text>
       </Button>
 
-      <Modal isOpen={isOpen} onClose={onClose}>
+      <Modal isOpen={isOpen} onClose={onClose} scrollBehavior="inside">
         <ModalOverlay />
-        <ModalContent color="textColor.100" bgColor="bgColor.100">
+        <ModalContent color="textColor.100" bgColor="bgColor.100" sx={{}}>
           <ModalHeader>
             <Heading size="md">Comments</Heading>
           </ModalHeader>
-          <ModalBody px="15px">
-            {isLoading ? <Loading /> : <CommentList comments={data} />}
+          <ModalBody
+            px="15px"
+            sx={{
+              "&::-webkit-scrollbar": {
+                width: "8px",
+              },
+              "&::-webkit-scrollbar-thumb": {
+                background: "bgColor.200",
+                borderRadius: "24px",
+              },
+              "&::-webkit-scrollbar-thumb:hover": {
+                background: "bgColor.300",
+              },
+            }}
+          >
+            {isLoading ? (
+              <Loading />
+            ) : error ? (
+              <Text color="red.500">
+                Failed to load comments. Please try again later.
+              </Text>
+            ) : (
+              <CommentList comments={data} />
+            )}
           </ModalBody>
           <CommentForm
             postId={postId}

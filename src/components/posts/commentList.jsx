@@ -1,5 +1,5 @@
-import { Avatar, Box, Text, HStack } from "@chakra-ui/react";
-import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
+import { Avatar, Box, Text, HStack, VStack, Spacer } from "@chakra-ui/react";
+import { formatDistanceToNow } from "date-fns";
 
 function CommentList({ comments }) {
   return comments?.map((comment) => {
@@ -16,17 +16,27 @@ function CommentList({ comments }) {
         key={comment.commentId}
         borderBottom="1px"
         borderColor="bgColor.200"
-        mb="10px"
+        py="10px"
       >
-        <HStack gap="5px">
+        <HStack spacing="10px">
           <Avatar size="sm" src={comment.profileImage} />
-          <Box minW="100px">
-            <Text>{comment.name}</Text>
-            <Text fontSize="10px" textColor="textColor.300">
-              {formattedTime} ago
-            </Text>
-          </Box>
-          <Text>{comment.description}</Text>
+          <VStack
+            align="start"
+            spacing="5px"
+            w="full"
+            backgroundColor="bgColor.200"
+            p="10px"
+            borderRadius="xl"
+          >
+            <HStack align="center" w="full">
+              <Text fontWeight="bold">{comment.name}</Text>
+              <Spacer />
+              <Text fontSize="xs" color="textColor.500">
+                {formattedTime}
+              </Text>
+            </HStack>
+            <Text>{comment.description}</Text>
+          </VStack>
         </HStack>
       </Box>
     );

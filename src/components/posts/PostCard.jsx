@@ -10,13 +10,56 @@ import {
   Img,
   Spacer,
   Text,
-  VStack,
 } from "@chakra-ui/react";
 import { HiHeart, HiOutlineHeart, HiOutlineShare } from "react-icons/hi2";
 import CommentsModal from "./CommentsModal";
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { makeRequest } from "../../axios";
+import { useAuth } from "../../contexts/AuthContext";
 
 function PostCard({ post }) {
+  const { user } = useAuth();
+
+  const { isPending, error, data } = useQuery({
+    queryKey: ["likes", post.postId],
+    queryFn: async () => {
+      const res = await makeRequest.get(`/likes/${post.postId}`);
+      return res.data;
+    },
+  });
+
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: async (liked) => {
+      if (!liked)
+        return makeRequest.post(
+          `/likes/${post.postId}`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${JSON.parse(
+                localStorage.getItem("token")
+              )}`,
+            },
+          }
+        );
+      return makeRequest.delete(`/likes/${post.postId}`, {
+        headers: {
+          Authorization: `Bearer ${JSON.parse(localStorage.getItem("token"))}`,
+        },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["likes", post.postId]);
+    },
+  });
+
+  function handleLike() {
+    mutation.mutate(data?.includes(user.userId));
+  }
+
   return (
     <Card
       key={post.postId}
@@ -56,18 +99,20 @@ function PostCard({ post }) {
               color: "primary.500",
             }}
             p="0px"
+            onClick={handleLike}
           >
-            {post.isLiked ? (
+            {isPending ? (
+              "Loading..."
+            ) : data?.includes(user.userId) ? (
               <Box as={HiHeart} fontSize="24px" color="red.500" />
             ) : (
               <HiOutlineHeart fontSize="24px" />
             )}
+            <Text ml={1}>{isPending ? "Loading..." : data?.length} likes</Text>
           </Button>
-          <Text>2.2k</Text>
         </HStack>
         <HStack ml="10px">
           <CommentsModal postId={post.postId} />
-          <Text>5.6k</Text>
         </HStack>
         <Spacer />
         <HStack>
