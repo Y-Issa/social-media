@@ -22,7 +22,7 @@ function Posts() {
 
         return res.data;
       } catch (error) {
-        logout();
+        console.log(error);
       }
     },
   });

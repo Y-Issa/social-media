@@ -17,9 +17,11 @@ import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { makeRequest } from "../../axios";
 import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 function PostCard({ post }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const { isPending, error, data } = useQuery({
     queryKey: ["likes", post.postId],
@@ -69,7 +71,12 @@ function PostCard({ post }) {
       borderRadius="2xl"
     >
       <CardHeader pb="10px" display="flex" gap="15px" alignItems="center">
-        <Avatar size="sm" src={post.profileImage} />
+        <Avatar
+          size="sm"
+          src={post.profileImage}
+          onClick={() => navigate(`/profile/${post.userId}`)}
+          cursor="pointer"
+        />
         <Box>
           <Text>{post.name}</Text>
           <Text fontSize="10px" textColor="textColor.300">

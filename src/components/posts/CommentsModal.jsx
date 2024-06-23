@@ -34,7 +34,6 @@ function CommentsModal({ postId }) {
       });
       return res.data;
     },
-    enabled: isOpen,
   });
 
   return (
@@ -48,7 +47,7 @@ function CommentsModal({ postId }) {
         onClick={onOpen}
       >
         <HiOutlineChatBubbleOvalLeftEllipsis fontSize="24px" />
-        <Text ml={1}>{data?.length} comments</Text>
+        <Text ml={1}>{data?.length === 0 ? "" : data?.length} comments</Text>
       </Button>
 
       <Modal isOpen={isOpen} onClose={onClose} scrollBehavior="inside">

@@ -1,27 +1,103 @@
 import {
   Avatar,
   Box,
+  Button,
   Card,
   CardBody,
+  Grid,
+  GridItem,
   HStack,
   Heading,
   Img,
+  Text,
 } from "@chakra-ui/react";
-import { useAuth } from "../contexts/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import {
   FaFacebook,
+  FaGlobe,
+  FaInbox,
   FaInstagram,
   FaLinkedin,
+  FaLocationDot,
   FaTwitter,
 } from "react-icons/fa6";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { makeRequest } from "../axios";
+import { useAuth } from "../contexts/AuthContext";
 
 function Profile() {
-  const { user } = useAuth();
+  const { user: currentUser } = useAuth();
 
-  return (
-    <>
-      {user ? (
+  const userId = useLocation().pathname.split("/").pop();
+  const {
+    isPending,
+    error,
+    data: user,
+  } = useQuery({
+    queryKey: ["user"],
+    queryFn: async () => {
+      const token = JSON.parse(localStorage.getItem("token"));
+      const res = await makeRequest.get(`users/find/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return res.data;
+    },
+  });
+
+  const { isPending: relationshipsPending, data: relationships } = useQuery({
+    queryKey: ["relationships"],
+    queryFn: async () => {
+      const token = JSON.parse(localStorage.getItem("token"));
+      const res = await makeRequest.get(`relationships/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return res.data;
+    },
+  });
+
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: async (following) => {
+      const token = JSON.parse(localStorage.getItem("token"));
+      if (following) {
+        return makeRequest.delete(`relationships/${userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      } else {
+        return makeRequest.post(
+          `relationships/${userId}`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["relationships"]);
+    },
+  });
+
+  function handleFollow() {
+    mutation.mutate(relationships.includes(currentUser.userId));
+  }
+
+  if (!currentUser) return <Navigate to="/login" />;
+
+  if (error) return "An error has occurred: " + error.message;
+
+  return isPending
+    ? "Loading..."
+    : user && (
         <Box>
           <Img
             maxH="200px"
@@ -47,21 +123,67 @@ function Profile() {
             <CardBody alignContent="center" pt="10px">
               <Box textAlign="center" mb="10px">
                 <Heading size="lg">{user.name}</Heading>
-                <HStack>
-                  <FaFacebook fontSize="24px" />
-                  <FaInstagram fontSize="24px" />
-                  <FaTwitter fontSize="24px" />
-                  <FaLinkedin fontSize="24px" />
-                </HStack>
+                <Grid templateColumns="1fr 1fr 1fr" alignItems="center">
+                  <GridItem>
+                    <HStack spacing={4}>
+                      <FaFacebook fontSize="24px" />
+                      <FaInstagram fontSize="24px" />
+                      <FaTwitter fontSize="24px" />
+                      <FaLinkedin fontSize="24px" />
+                    </HStack>
+                  </GridItem>
+
+                  <GridItem display="flex" justifyContent="center">
+                    <HStack spacing={4}>
+                      <Text>{user.city ? user.city : "Earth"}</Text>
+                      <FaLocationDot fontSize="24px" />
+                      {user.website && (
+                        <Button
+                          as="a"
+                          href={
+                            user.website.startsWith("http")
+                              ? user.website
+                              : `http://${user.website}`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          variant="unstyled"
+                          display="flex"
+                          gap={2}
+                        >
+                          <Text>Website</Text>
+                          <FaGlobe fontSize="24px" />
+                        </Button>
+                      )}
+                    </HStack>
+                  </GridItem>
+
+                  <GridItem display="flex" justifyContent="flex-end">
+                    <FaInbox fontSize="24px" />
+                  </GridItem>
+                </Grid>
+                {relationshipsPending ? (
+                  "Loading..."
+                ) : currentUser.userId === user.userId ? (
+                  <Button mt="10px" colorScheme="primary">
+                    Edit Profile
+                  </Button>
+                ) : (
+                  <Button
+                    mt="10px"
+                    colorScheme="primary"
+                    onClick={handleFollow}
+                  >
+                    {relationships.includes(currentUser.userId)
+                      ? "Unfollow"
+                      : "Follow"}
+                  </Button>
+                )}
               </Box>
             </CardBody>
           </Card>
         </Box>
-      ) : (
-        <Navigate to="/login" />
-      )}
-    </>
-  );
+      );
 }
 
 export default Profile;

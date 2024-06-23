@@ -29,7 +29,7 @@ function Login() {
     try {
       await login({ email, password });
     } catch (error) {
-      localError = error.response.data;
+      localError = error.response.data || "Unkown Error Occured.";
     } finally {
       toast({
         position: "top",
