@@ -12,10 +12,13 @@ import {
 } from "@chakra-ui/react";
 import axios from "axios";
 import { useState } from "react";
-import { Form, Link } from "react-router-dom";
+import { Form, Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 function Register() {
   const toast = useToast();
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -30,6 +33,8 @@ function Register() {
         email,
         password,
       });
+      await login({ email, password });
+      navigate("/");
     } catch (error) {
       localError = error.response.data;
     } finally {
@@ -113,7 +118,7 @@ function Register() {
               _hover={{ bgColor: "primary.600" }}
               w="full"
             >
-              Login
+              Sign Up
             </Button>
             <Button
               w="full"

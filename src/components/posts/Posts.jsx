@@ -4,17 +4,16 @@ import { useQuery } from "@tanstack/react-query";
 import { makeRequest } from "../../axios";
 import Loading from "../Loading";
 import PostCard from "./PostCard";
-import NewPost from "./NewPost";
 import { useAuth } from "../../contexts/AuthContext";
 
-function Posts() {
+function Posts({ userId }) {
   const { logout } = useAuth();
   const { isPending, error, data } = useQuery({
-    queryKey: ["posts"],
+    queryKey: ["posts", userId],
     queryFn: async () => {
       try {
         const token = JSON.parse(localStorage.getItem("token"));
-        const res = await makeRequest.get("/posts", {
+        const res = await makeRequest.get(`/posts?userId=${userId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -33,7 +32,6 @@ function Posts() {
     <Text>Something Went Wrong!</Text>
   ) : (
     <Box>
-      <NewPost />
       {data?.map((post) => (
         <PostCard key={post.postId} post={post} />
       ))}

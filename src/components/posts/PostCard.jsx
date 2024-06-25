@@ -69,6 +69,7 @@ function PostCard({ post }) {
       color="textColor.100"
       bgColor="bgColor.50"
       borderRadius="2xl"
+      mx={{ base: "10px", lg: "35px" }}
     >
       <CardHeader pb="10px" display="flex" gap="15px" alignItems="center">
         <Avatar
@@ -103,6 +104,9 @@ function PostCard({ post }) {
           <Button
             variant="ghost"
             _hover={{
+              color: "primary.500",
+            }}
+            _active={{
               color: "primary.500",
             }}
             p="0px"

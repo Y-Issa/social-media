@@ -13,6 +13,7 @@ import {
 } from "@chakra-ui/react";
 import { Navigate, useLocation } from "react-router-dom";
 import {
+  FaEllipsisVertical,
   FaFacebook,
   FaGlobe,
   FaInbox,
@@ -24,6 +25,8 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { makeRequest } from "../axios";
 import { useAuth } from "../contexts/AuthContext";
+import Posts from "../components/posts/Posts";
+import UpdateProfile from "../components/profile/UpdateProfile";
 
 function Profile() {
   const { user: currentUser } = useAuth();
@@ -34,7 +37,7 @@ function Profile() {
     error,
     data: user,
   } = useQuery({
-    queryKey: ["user"],
+    queryKey: ["user", userId],
     queryFn: async () => {
       const token = JSON.parse(localStorage.getItem("token"));
       const res = await makeRequest.get(`users/find/${userId}`, {
@@ -102,7 +105,11 @@ function Profile() {
           <Img
             maxH="200px"
             w="full"
-            src={user.coverImage}
+            src={
+              user.coverImage?.startsWith("http")
+                ? user.coverImage
+                : `http://localhost:8001/public/upload/${user.coverImage}`
+            }
             alt="cover-image"
             objectFit="cover"
             objectPosition="top"
@@ -113,10 +120,15 @@ function Profile() {
             bgColor="bgColor.50"
             borderRadius="2xl"
             mx={{ base: "10px", lg: "35px" }}
+            mb="30px"
           >
             <Avatar
               size={{ base: "xl", md: "2xl" }}
-              src={user.profileImage}
+              src={
+                user.profileImage?.startsWith("http")
+                  ? user.profileImage
+                  : `http://localhost:8001/public/upload/${user.profileImage}`
+              }
               mx="auto"
               mt="-50px"
             />
@@ -159,15 +171,16 @@ function Profile() {
                   </GridItem>
 
                   <GridItem display="flex" justifyContent="flex-end">
-                    <FaInbox fontSize="24px" />
+                    <HStack spacing={4}>
+                      <FaInbox fontSize="24px" />
+                      <FaEllipsisVertical fontSize="24px" />
+                    </HStack>
                   </GridItem>
                 </Grid>
                 {relationshipsPending ? (
                   "Loading..."
                 ) : currentUser.userId === user.userId ? (
-                  <Button mt="10px" colorScheme="primary">
-                    Edit Profile
-                  </Button>
+                  <UpdateProfile />
                 ) : (
                   <Button
                     mt="10px"
@@ -182,6 +195,7 @@ function Profile() {
               </Box>
             </CardBody>
           </Card>
+          <Posts userId={user.userId} />
         </Box>
       );
 }

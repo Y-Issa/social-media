@@ -43,6 +43,9 @@ function CommentsModal({ postId }) {
         _hover={{
           color: "primary.500",
         }}
+        _active={{
+          color: "primary.500",
+        }}
         p="0px"
         onClick={onOpen}
       >
@@ -52,7 +55,7 @@ function CommentsModal({ postId }) {
 
       <Modal isOpen={isOpen} onClose={onClose} scrollBehavior="inside">
         <ModalOverlay />
-        <ModalContent color="textColor.100" bgColor="bgColor.100" sx={{}}>
+        <ModalContent color="textColor.100" bgColor="bgColor.100">
           <ModalHeader>
             <Heading size="md">Comments</Heading>
           </ModalHeader>

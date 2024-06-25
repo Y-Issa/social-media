@@ -1,5 +1,5 @@
 import axios from "axios";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 const AuthContext = createContext();
 
@@ -7,6 +7,30 @@ function AuthProvider({ children }) {
   const [user, setUser] = useState(
     JSON.parse(localStorage.getItem("user")) || null
   );
+
+  useEffect(() => {
+    async function checkTokenValidity() {
+      const token = JSON.parse(localStorage.getItem("token"));
+      if (token) {
+        try {
+          const response = await axios.get(
+            "http://localhost:8001/api/auth/check",
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+              withCredentials: true,
+            }
+          );
+        } catch (error) {
+          console.error("Token validation failed:", error);
+          logout();
+        }
+      }
+    }
+
+    checkTokenValidity();
+  }, []);
 
   async function login({ email, password }) {
     const response = await axios.post(

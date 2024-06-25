@@ -56,7 +56,6 @@ function NewPost() {
     let imageUrl = "";
     console.log(file);
     if (file) imageUrl = await uploadImage();
-    console.log({ description, image: imageUrl });
     mutation.mutate({ description, image: imageUrl });
     setDescription("");
     setFile(null);
@@ -68,6 +67,7 @@ function NewPost() {
       color="textColor.100"
       bgColor="bgColor.50"
       borderRadius="2xl"
+      mx={{ base: "10px", lg: "35px" }}
     >
       <Form onSubmit={handleSubmit}>
         <FormControl>
