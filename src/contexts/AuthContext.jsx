@@ -13,15 +13,12 @@ function AuthProvider({ children }) {
       const token = JSON.parse(localStorage.getItem("token"));
       if (token) {
         try {
-          const response = await axios.get(
-            "http://localhost:8001/api/auth/check",
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-              withCredentials: true,
-            }
-          );
+          await axios.get("http://localhost:8001/api/auth/check", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            withCredentials: true,
+          });
         } catch (error) {
           console.error("Token validation failed:", error);
           logout();

@@ -54,7 +54,6 @@ function NewPost() {
   async function handleSubmit(e) {
     e.preventDefault();
     let imageUrl = "";
-    console.log(file);
     if (file) imageUrl = await uploadImage();
     mutation.mutate({ description, image: imageUrl });
     setDescription("");

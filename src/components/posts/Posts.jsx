@@ -8,7 +8,7 @@ import { useAuth } from "../../contexts/AuthContext";
 
 function Posts({ userId }) {
   const { logout } = useAuth();
-  const { isPending, error, data } = useQuery({
+  const { isLoading, error, data } = useQuery({
     queryKey: ["posts", userId],
     queryFn: async () => {
       try {
@@ -26,7 +26,7 @@ function Posts({ userId }) {
     },
   });
 
-  return isPending ? (
+  return isLoading ? (
     <Loading />
   ) : error ? (
     <Text>Something Went Wrong!</Text>

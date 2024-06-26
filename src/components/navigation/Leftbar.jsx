@@ -1,8 +1,7 @@
-import { Avatar, Divider, HStack, Text, VStack } from "@chakra-ui/react";
+import { Divider, HStack, Text, VStack } from "@chakra-ui/react";
 import {
   FcCalendar,
   FcClapperboard,
-  FcClock,
   FcConferenceCall,
   FcContacts,
   FcPicture,
@@ -10,8 +9,11 @@ import {
 } from "react-icons/fc";
 import { HiMail } from "react-icons/hi";
 import { useAuth } from "../../contexts/AuthContext";
+import { HiArchiveBoxArrowDown } from "react-icons/hi2";
+import { useNavigate } from "react-router-dom";
 
 function Leftbar() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   return (
     user && (
@@ -24,12 +26,8 @@ function Leftbar() {
         minH="92vh"
       >
         <HStack>
-          <Avatar size="sm" src={user.profileImage} />
-          <Text>{user.name}</Text>
-        </HStack>
-        <HStack>
           <FcContacts size="30px" />
-          <Text>Friends</Text>
+          <Text>Connections</Text>
         </HStack>
         <HStack>
           <FcConferenceCall size="30px" />
@@ -43,9 +41,15 @@ function Leftbar() {
           <FcClapperboard size="30px" />
           <Text>Watch</Text>
         </HStack>
-        <HStack pb="10px">
-          <FcClock size="30px" />
-          <Text>Memories</Text>
+        <HStack
+          pb="10px"
+          cursor="pointer"
+          onClick={() => {
+            navigate("/saved");
+          }}
+        >
+          <HiArchiveBoxArrowDown color="#3F51B5" size="30px" />
+          <Text>Saved</Text>
         </HStack>
 
         <Divider borderColor="bgColor.400" />

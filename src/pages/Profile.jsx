@@ -33,7 +33,7 @@ function Profile() {
 
   const userId = useLocation().pathname.split("/").pop();
   const {
-    isPending,
+    isLoading,
     error,
     data: user,
   } = useQuery({
@@ -49,7 +49,7 @@ function Profile() {
     },
   });
 
-  const { isPending: relationshipsPending, data: relationships } = useQuery({
+  const { isLoading: relationshipsPending, data: relationships } = useQuery({
     queryKey: ["relationships"],
     queryFn: async () => {
       const token = JSON.parse(localStorage.getItem("token"));
@@ -91,14 +91,14 @@ function Profile() {
   });
 
   function handleFollow() {
-    mutation.mutate(relationships.includes(currentUser.userId));
+    mutation.mutate(relationships?.includes(currentUser.userId));
   }
 
   if (!currentUser) return <Navigate to="/login" />;
 
   if (error) return "An error has occurred: " + error.message;
 
-  return isPending
+  return isLoading
     ? "Loading..."
     : user && (
         <Box>
@@ -123,7 +123,7 @@ function Profile() {
             mb="30px"
           >
             <Avatar
-              size={{ base: "xl", md: "2xl" }}
+              size={{ base: "xl", sm: "2xl" }}
               src={
                 user.profileImage?.startsWith("http")
                   ? user.profileImage
@@ -135,9 +135,19 @@ function Profile() {
             <CardBody alignContent="center" pt="10px">
               <Box textAlign="center" mb="10px">
                 <Heading size="lg">{user.name}</Heading>
-                <Grid templateColumns="1fr 1fr 1fr" alignItems="center">
+                <Grid
+                  templateColumns={{
+                    base: "1fr",
+                    sm: "1fr 1fr 1fr",
+                  }}
+                  gap={4}
+                  alignItems="center"
+                >
                   <GridItem>
-                    <HStack spacing={4}>
+                    <HStack
+                      spacing={4}
+                      justify={{ base: "center", md: "flex-start" }}
+                    >
                       <FaFacebook fontSize="24px" />
                       <FaInstagram fontSize="24px" />
                       <FaTwitter fontSize="24px" />
@@ -145,7 +155,10 @@ function Profile() {
                     </HStack>
                   </GridItem>
 
-                  <GridItem display="flex" justifyContent="center">
+                  <GridItem
+                    display="flex"
+                    justifyContent={{ base: "center", md: "center" }}
+                  >
                     <HStack spacing={4}>
                       <Text>{user.city ? user.city : "Earth"}</Text>
                       <FaLocationDot fontSize="24px" />
@@ -170,7 +183,10 @@ function Profile() {
                     </HStack>
                   </GridItem>
 
-                  <GridItem display="flex" justifyContent="flex-end">
+                  <GridItem
+                    display="flex"
+                    justifyContent={{ base: "center", md: "flex-end" }}
+                  >
                     <HStack spacing={4}>
                       <FaInbox fontSize="24px" />
                       <FaEllipsisVertical fontSize="24px" />
@@ -187,7 +203,7 @@ function Profile() {
                     colorScheme="primary"
                     onClick={handleFollow}
                   >
-                    {relationships.includes(currentUser.userId)
+                    {relationships?.includes(currentUser.userId)
                       ? "Unfollow"
                       : "Follow"}
                   </Button>

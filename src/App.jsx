@@ -18,6 +18,7 @@ import RootLayout from "./layout/RootLayout";
 import Profile from "./pages/profile";
 import Register from "./pages/register";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import SavedPosts from "./pages/SavedPosts";
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
@@ -26,6 +27,7 @@ const router = createBrowserRouter(
       <Route path="/" element={<RootLayout />}>
         <Route index element={<Home />} />
         <Route path="profile/:uid" element={<Profile />} />
+        <Route path="saved" element={<SavedPosts />} />
       </Route>
     </>
   )
