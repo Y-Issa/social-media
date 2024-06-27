@@ -13,6 +13,7 @@ import {
 import { useState } from "react";
 import { Form, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import FormControlInput from "../components/FormControlInput";
 
 function Login() {
   const navigate = useNavigate();
@@ -87,30 +88,22 @@ function Login() {
         <VStack spacing={4} w="full">
           <Heading size={{ base: "md", lg: "2xl" }}>Sign In</Heading>
           <Form onSubmit={handleSubmit}>
-            <FormControl>
-              <Input
-                type="email"
-                name="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                isRequired
-                focusBorderColor="primary.100"
-                borderColor="bgColor.400"
-              />
-            </FormControl>
-            <FormControl mt={4}>
-              <Input
-                type="password"
-                name="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                isRequired
-                focusBorderColor="primary.100"
-                borderColor="bgColor.400"
-              />
-            </FormControl>
+            <FormControlInput
+              label="Email"
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              isRequired
+            />
+            <FormControlInput
+              label="Password"
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              isRequired
+            />
             <Button
               type="submit"
               mt={4}

@@ -14,81 +14,53 @@ import {
 } from "@chakra-ui/react";
 import { HiHeart, HiOutlineHeart, HiOutlineShare } from "react-icons/hi2";
 import CommentsModal from "./CommentsModal";
-import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
+import { formatDistanceToNow } from "date-fns";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { makeRequest } from "../../axios";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Actions from "./Actions";
+
+import {
+  fetchLikes,
+  fetchSaved,
+  likePost,
+  deletePost,
+  savePost,
+} from "../../queries/posts";
 
 function PostCard({ post }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
+  const queryClient = useQueryClient();
 
   const {
-    isLoading,
-    error,
+    isLoading: isLoadingLikes,
+    error: errorLikes,
     data: likes,
   } = useQuery({
     queryKey: ["likes", post.postId],
-    queryFn: async () => {
-      const res = await makeRequest.get(`/likes/${post.postId}`);
-      return res.data;
-    },
+    queryFn: () => fetchLikes(post.postId),
   });
 
   const {
-    isLoading: loadingSaved,
+    isLoading: isLoadingSaved,
     error: errorSaved,
     data: saved,
   } = useQuery({
     queryKey: ["saved", post.postId],
-    queryFn: async () => {
-      const res = await makeRequest.get(`/save/ids`, {
-        headers: {
-          Authorization: `Bearer ${JSON.parse(localStorage.getItem("token"))}`,
-        },
-      });
-      return res.data;
-    },
+    queryFn: () => fetchSaved(post.postId),
   });
 
-  const queryClient = useQueryClient();
-
   const likeMutation = useMutation({
-    mutationFn: async (liked) => {
-      if (!liked)
-        return makeRequest.post(
-          `/likes/${post.postId}`,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${JSON.parse(
-                localStorage.getItem("token")
-              )}`,
-            },
-          }
-        );
-      return makeRequest.delete(`/likes/${post.postId}`, {
-        headers: {
-          Authorization: `Bearer ${JSON.parse(localStorage.getItem("token"))}`,
-        },
-      });
-    },
+    mutationFn: (liked) => likePost(post.postId, liked),
     onSuccess: () => {
       queryClient.invalidateQueries(["likes", post.postId]);
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (postId) => {
-      await makeRequest.delete(`/posts/${postId}`, {
-        headers: {
-          Authorization: `Bearer ${JSON.parse(localStorage.getItem("token"))}`,
-        },
-      });
-    },
+    mutationFn: () => deletePost(post.postId),
     onSuccess: () => {
       queryClient.invalidateQueries(["posts"]);
       toast({
@@ -101,29 +73,7 @@ function PostCard({ post }) {
   });
 
   const saveMutation = useMutation({
-    mutationFn: async (postId) => {
-      if (saved?.includes(postId)) {
-        await makeRequest.delete(`/save/${postId}`, {
-          headers: {
-            Authorization: `Bearer ${JSON.parse(
-              localStorage.getItem("token")
-            )}`,
-          },
-        });
-      } else {
-        await makeRequest.post(
-          `/save/${postId}`,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${JSON.parse(
-                localStorage.getItem("token")
-              )}`,
-            },
-          }
-        );
-      }
-    },
+    mutationFn: () => savePost(post.postId, saved),
     onSuccess: () => {
       queryClient.invalidateQueries(["saved", post.postId]);
       queryClient.invalidateQueries(["savedPosts"]);
@@ -141,11 +91,11 @@ function PostCard({ post }) {
   }
 
   function handleDelete() {
-    deleteMutation.mutate(post.postId);
+    deleteMutation.mutate();
   }
 
   function handleSave() {
-    saveMutation.mutate(post.postId);
+    saveMutation.mutate();
   }
 
   return (
@@ -161,7 +111,7 @@ function PostCard({ post }) {
         <Avatar
           size="sm"
           src={
-            post.profileImage.startsWith("http")
+            post.profileImage?.startsWith("http")
               ? post.profileImage
               : `http://localhost:8001/public/upload/${post.profileImage}`
           }
@@ -171,7 +121,7 @@ function PostCard({ post }) {
         <Box>
           <Text>{post.name}</Text>
           <Text fontSize="10px" textColor="textColor.300">
-            {formatDistanceToNow(post.createdAt)} ago
+            {formatDistanceToNow(new Date(post.createdAt))} ago
           </Text>
         </Box>
 
@@ -190,7 +140,7 @@ function PostCard({ post }) {
         {post.image && (
           <Img
             src={
-              post.image.startsWith("http")
+              post.image?.startsWith("http")
                 ? post.image
                 : `http://localhost:8001/public/upload/${post.image}`
             }
@@ -214,14 +164,18 @@ function PostCard({ post }) {
             p="0px"
             onClick={handleLike}
           >
-            {isLoading ? (
+            {isLoadingLikes ? (
               "Loading..."
+            ) : errorLikes ? (
+              "Error"
             ) : likes?.includes(user.userId) ? (
               <Box as={HiHeart} fontSize="24px" color="red.500" />
             ) : (
               <HiOutlineHeart fontSize="24px" />
             )}
-            <Text ml={1}>{isLoading ? "Loading..." : likes?.length} likes</Text>
+            <Text ml={1}>
+              {isLoadingLikes ? "Loading..." : likes?.length} likes
+            </Text>
           </Button>
         </HStack>
         <HStack ml="10px">

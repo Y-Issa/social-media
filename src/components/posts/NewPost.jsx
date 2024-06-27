@@ -15,7 +15,7 @@ import { Form } from "react-router-dom";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../contexts/AuthContext";
-import { makeRequest } from "../../axios";
+import { createPost, uploadImage } from "../../queries/posts";
 
 function NewPost() {
   const [file, setFile] = useState(null);
@@ -23,38 +23,27 @@ function NewPost() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const mutation = useMutation({
-    mutationFn: (newPost) => {
-      return makeRequest.post("/posts", newPost, {
-        headers: {
-          Authorization: `Bearer ${JSON.parse(localStorage.getItem("token"))}`,
-        },
-      });
-    },
+  const mutation = useMutation(createPost, {
     onSuccess: () => {
       setDescription("");
       queryClient.invalidateQueries(["posts"]);
     },
     onError: (error) => {
-      console.log(error);
+      console.error("Error creating post:", error);
     },
   });
-
-  async function uploadImage() {
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await makeRequest.post("/upload", formData);
-      return res.data;
-    } catch (err) {
-      console.log(err);
-    }
-  }
 
   async function handleSubmit(e) {
     e.preventDefault();
     let imageUrl = "";
-    if (file) imageUrl = await uploadImage();
+    if (file) {
+      try {
+        imageUrl = await uploadImage(file);
+      } catch (err) {
+        console.error("Error uploading image:", err);
+        return;
+      }
+    }
     mutation.mutate({ description, image: imageUrl });
     setDescription("");
     setFile(null);

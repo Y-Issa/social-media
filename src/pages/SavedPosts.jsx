@@ -1,33 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
-import { makeRequest } from "../axios";
 import Loading from "../components/Loading";
 import { Box, Text, Heading, VStack } from "@chakra-ui/react";
 import PostCard from "../components/posts/PostCard";
+import { useAuth } from "../contexts/AuthContext";
+import { Navigate } from "react-router-dom";
+import { fetchSavedPosts } from "../queries/posts";
 
 function SavedPosts() {
+  const { user } = useAuth();
   const {
     isLoading,
     error,
     data: savedPosts,
   } = useQuery({
     queryKey: ["savedPosts"],
-    queryFn: async () => {
-      try {
-        const res = await makeRequest.get("/save", {
-          headers: {
-            Authorization: `Bearer ${JSON.parse(
-              localStorage.getItem("token")
-            )}`,
-          },
-        });
-        return res.data;
-      } catch (error) {
-        console.log(error);
-      }
-    },
+    queryFn: fetchSavedPosts,
   });
 
-  return (
+  return user ? (
     <Box mx="auto" maxW="800px" p={4}>
       <Heading mb={4} textAlign="center">
         Your Saved Posts
@@ -48,6 +38,8 @@ function SavedPosts() {
         </VStack>
       )}
     </Box>
+  ) : (
+    <Navigate to="/login" />
   );
 }
 

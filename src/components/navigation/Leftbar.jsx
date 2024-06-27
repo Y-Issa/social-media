@@ -29,7 +29,7 @@ function Leftbar() {
           <FcContacts size="30px" />
           <Text>Connections</Text>
         </HStack>
-        <HStack>
+        <HStack cursor="pointer" onClick={() => navigate("/groups")}>
           <FcConferenceCall size="30px" />
           <Text>Groups</Text>
         </HStack>

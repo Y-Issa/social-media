@@ -1,4 +1,5 @@
 import {
+  Navigate,
   Route,
   RouterProvider,
   createBrowserRouter,
@@ -19,6 +20,7 @@ import Profile from "./pages/profile";
 import Register from "./pages/register";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import SavedPosts from "./pages/SavedPosts";
+import Groups from "./pages/Groups";
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
@@ -28,6 +30,8 @@ const router = createBrowserRouter(
         <Route index element={<Home />} />
         <Route path="profile/:uid" element={<Profile />} />
         <Route path="saved" element={<SavedPosts />} />
+        <Route path="groups" element={<Groups />} />
+        <Route path="*" element={<Navigate to="/" />} />
       </Route>
     </>
   )

@@ -14,9 +14,9 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import Loading from "../Loading";
-import { makeRequest } from "../../axios";
-import CommentList from "./commentList";
+import CommentList from "./CommentList";
 import CommentForm from "./CommentForm";
+import { fetchComments } from "../../queries/comments";
 
 function CommentsModal({ postId }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -25,15 +25,7 @@ function CommentsModal({ postId }) {
 
   const { isLoading, error, data } = useQuery({
     queryKey: ["comments", postId],
-    queryFn: async () => {
-      const token = JSON.parse(localStorage.getItem("token"));
-      const res = await makeRequest.get(`/comments/${postId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      return res.data;
-    },
+    queryFn: () => fetchComments(postId),
   });
 
   return (

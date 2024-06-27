@@ -2,9 +2,7 @@ import {
   Box,
   Button,
   Card,
-  FormControl,
   Heading,
-  Input,
   Spacer,
   Text,
   VStack,
@@ -14,26 +12,30 @@ import axios from "axios";
 import { useState } from "react";
 import { Form, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import FormControlInput from "../components/FormControlInput";
 
 function Register() {
   const toast = useToast();
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+  });
+
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
     let localError = null;
     try {
-      await axios.post("http://localhost:8001/api/auth/register", {
-        name,
-        email,
-        password,
-      });
-      await login({ email, password });
+      await axios.post("http://localhost:8001/api/auth/register", formData);
+      await login({ email: formData.email, password: formData.password });
       navigate("/");
     } catch (error) {
       localError = error.response.data;
@@ -72,44 +74,29 @@ function Register() {
         <VStack spacing={4} w="full">
           <Heading size={{ base: "md", lg: "2xl" }}>Sign Up</Heading>
           <Form onSubmit={handleSubmit}>
-            <FormControl>
-              <Input
-                type="text"
-                name="name"
-                placeholder="Name"
-                autoComplete="off"
-                isRequired
-                focusBorderColor="primary.100"
-                borderColor="bgColor.400"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </FormControl>
-            <FormControl mt={4}>
-              <Input
-                type="email"
-                name="email"
-                placeholder="Email"
-                autoComplete="off"
-                isRequired
-                focusBorderColor="primary.100"
-                borderColor="bgColor.400"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </FormControl>
-            <FormControl mt={4}>
-              <Input
-                type="password"
-                name="password"
-                placeholder="Password"
-                isRequired
-                focusBorderColor="primary.100"
-                borderColor="bgColor.400"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </FormControl>
+            <FormControlInput
+              type="text"
+              name="name"
+              placeholder="Name"
+              value={formData.name}
+              onChange={handleChange}
+              autoComplete="off"
+            />
+            <FormControlInput
+              type="email"
+              name="email"
+              placeholder="Email"
+              value={formData.email}
+              onChange={handleChange}
+              autoComplete="off"
+            />
+            <FormControlInput
+              type="password"
+              name="password"
+              placeholder="Password"
+              value={formData.password}
+              onChange={handleChange}
+            />
             <Button
               type="submit"
               mt={4}

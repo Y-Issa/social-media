@@ -8,19 +8,13 @@ import {
 } from "@chakra-ui/react";
 import { HiOutlineChevronDoubleRight } from "react-icons/hi2";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { makeRequest } from "../../axios";
+import { addComment } from "../../queries/comments";
 
 function CommentForm({ postId, comment, setComment, user }) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (newComment) => {
-      return makeRequest.post(`/comments/${postId}`, newComment, {
-        headers: {
-          Authorization: `Bearer ${JSON.parse(localStorage.getItem("token"))}`,
-        },
-      });
-    },
+    mutationFn: (newComment) => addComment({ postId, newComment }),
     onSuccess: () => {
       queryClient.invalidateQueries(["comments", postId]);
     },

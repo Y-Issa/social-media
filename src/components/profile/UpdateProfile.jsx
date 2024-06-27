@@ -19,8 +19,8 @@ import {
 import { Form } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useState } from "react";
-import { makeRequest } from "../../axios";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { updateProfile, uploadImage } from "../../queries/profile";
 
 function UpdateProfile() {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -35,27 +35,10 @@ function UpdateProfile() {
   const [oldPassword, setOldPassword] = useState("");
   const [isUpload, setIsUpload] = useState(false);
 
-  async function uploadImage(file) {
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await makeRequest.post("/upload", formData);
-      return res.data;
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: async (newProfile) => {
-      return makeRequest.put("/users", newProfile, {
-        headers: {
-          Authorization: `Bearer ${JSON.parse(localStorage.getItem("token"))}`,
-        },
-      });
-    },
+    mutationFn: (newProfle) => updateProfile(newProfle),
     onSuccess: () => {
       queryClient.invalidateQueries(["user"]);
       const email = user.email;
