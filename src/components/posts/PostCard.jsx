@@ -27,8 +27,15 @@ import {
   deletePost,
   savePost,
 } from "../../queries/posts";
+import {
+  deleteGroupPost,
+  fetchGroupPostLikes,
+  fetchSavedGroupPostIds,
+  likeGroupPost,
+  saveGroupPost,
+} from "../../queries/groups";
 
-function PostCard({ post }) {
+function PostCard({ post, groupPost = false }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
@@ -40,7 +47,9 @@ function PostCard({ post }) {
     data: likes,
   } = useQuery({
     queryKey: ["likes", post.postId],
-    queryFn: () => fetchLikes(post.postId),
+    queryFn: groupPost
+      ? () => fetchGroupPostLikes(post.postId)
+      : () => fetchLikes(post.postId),
   });
 
   const {
@@ -49,18 +58,32 @@ function PostCard({ post }) {
     data: saved,
   } = useQuery({
     queryKey: ["saved", post.postId],
-    queryFn: () => fetchSaved(post.postId),
+    queryFn: () => fetchCombinedData(),
   });
 
+  async function fetchCombinedData(postId) {
+    const [saved, savedGroupPosts] = await Promise.all([
+      fetchSaved(postId),
+      fetchSavedGroupPostIds(postId),
+    ]);
+    return [...saved, ...savedGroupPosts].filter(
+      (item) => item !== null && item !== undefined
+    );
+  }
+
   const likeMutation = useMutation({
-    mutationFn: (liked) => likePost(post.postId, liked),
+    mutationFn: groupPost
+      ? (liked) => likeGroupPost(post.postId, liked)
+      : (liked) => likePost(post.postId, liked),
     onSuccess: () => {
       queryClient.invalidateQueries(["likes", post.postId]);
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: () => deletePost(post.postId),
+    mutationFn: groupPost
+      ? () => deleteGroupPost(post.postId)
+      : () => deletePost(post.postId),
     onSuccess: () => {
       queryClient.invalidateQueries(["posts"]);
       toast({
@@ -73,7 +96,9 @@ function PostCard({ post }) {
   });
 
   const saveMutation = useMutation({
-    mutationFn: () => savePost(post.postId, saved),
+    mutationFn: groupPost
+      ? () => saveGroupPost(post.postId, saved)
+      : () => savePost(post.postId, saved),
     onSuccess: () => {
       queryClient.invalidateQueries(["saved", post.postId]);
       queryClient.invalidateQueries(["savedPosts"]);

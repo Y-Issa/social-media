@@ -5,6 +5,7 @@ import PostCard from "../components/posts/PostCard";
 import { useAuth } from "../contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { fetchSavedPosts } from "../queries/posts";
+import { fetchSavedGroupPosts } from "../queries/groups";
 
 function SavedPosts() {
   const { user } = useAuth();
@@ -14,8 +15,18 @@ function SavedPosts() {
     data: savedPosts,
   } = useQuery({
     queryKey: ["savedPosts"],
-    queryFn: fetchSavedPosts,
+    queryFn: fetchCombinedData,
   });
+
+  async function fetchCombinedData(postId) {
+    const [saved, savedGroupPosts] = await Promise.all([
+      fetchSavedPosts(postId),
+      fetchSavedGroupPosts(postId),
+    ]);
+    return [...saved, ...savedGroupPosts].filter(
+      (item) => item !== null && item !== undefined
+    );
+  }
 
   return user ? (
     <Box mx="auto" maxW="800px" p={4}>

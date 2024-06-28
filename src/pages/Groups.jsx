@@ -8,6 +8,7 @@ import {
 } from "../queries/groups";
 import GroupCard from "../components/group/GroupCard";
 import Loading from "../components/Loading";
+import CreateGroup from "../components/group/CreateGroup";
 
 function Groups() {
   const toast = useToast();
@@ -51,6 +52,8 @@ function Groups() {
     await toggleMembershipMutation.mutateAsync({ groupId, isMember });
   };
 
+  console.log(joinedGroups, groups);
+
   return (
     <>
       <Box p="20px">
@@ -90,6 +93,7 @@ function Groups() {
         ) : (
           <Text mt={2}>No other groups available to join at the moment.</Text>
         )}
+        <CreateGroup />
       </Box>
     </>
   );

@@ -38,7 +38,7 @@ function Navbar() {
         borderBottom="1px"
         borderColor="bgColor.400"
       >
-        <Heading size="md" display={{ base: "none", sm: "block" }}>
+        <Heading size="md">
           <Link to="/">Communet</Link>
         </Heading>
         <HStack gap={1}>
