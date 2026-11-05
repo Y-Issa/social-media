@@ -22,7 +22,7 @@ import Actions from "./Actions";
 
 import {
   fetchLikes,
-  fetchSaved,
+  fetchAllSavedIds,
   likePost,
   deletePost,
   savePost,
@@ -30,12 +30,15 @@ import {
 import {
   deleteGroupPost,
   fetchGroupPostLikes,
-  fetchSavedGroupPostIds,
   likeGroupPost,
   saveGroupPost,
 } from "../../queries/groups";
+import { getImageUrl } from "../../imageUrl";
+import { errorMessage } from "../../axios";
 
-function PostCard({ post, groupPost = false }) {
+function PostCard({ post, groupPost: groupPostProp = false }) {
+  // Saved-posts page mixes both kinds; group posts are tagged there.
+  const groupPost = groupPostProp || Boolean(post.isGroupPost);
   const { user } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
@@ -52,24 +55,14 @@ function PostCard({ post, groupPost = false }) {
       : () => fetchLikes(post.postId),
   });
 
-  const {
-    isLoading: isLoadingSaved,
-    error: errorSaved,
-    data: saved,
-  } = useQuery({
-    queryKey: ["saved", post.postId],
-    queryFn: () => fetchCombinedData(),
+  // One shared query for all cards instead of two requests per card.
+  const { data: saved } = useQuery({
+    queryKey: ["saved"],
+    queryFn: fetchAllSavedIds,
   });
 
-  async function fetchCombinedData(postId) {
-    const [saved, savedGroupPosts] = await Promise.all([
-      fetchSaved(postId),
-      fetchSavedGroupPostIds(postId),
-    ]);
-    return [...saved, ...savedGroupPosts].filter(
-      (item) => item !== null && item !== undefined
-    );
-  }
+  const showError = (title) => (error) =>
+    toast({ title, description: errorMessage(error), status: "error" });
 
   const likeMutation = useMutation({
     mutationFn: groupPost
@@ -78,6 +71,7 @@ function PostCard({ post, groupPost = false }) {
     onSuccess: () => {
       queryClient.invalidateQueries(["likes", post.postId]);
     },
+    onError: showError("Couldn't update like"),
   });
 
   const deleteMutation = useMutation({
@@ -86,13 +80,11 @@ function PostCard({ post, groupPost = false }) {
       : () => deletePost(post.postId),
     onSuccess: () => {
       queryClient.invalidateQueries(["posts"]);
-      toast({
-        title: "Post deleted.",
-        status: "success",
-        duration: 3000,
-        position: "top",
-      });
+      queryClient.invalidateQueries(["GroupPosts"]);
+      queryClient.invalidateQueries(["savedPosts"]);
+      toast({ title: "Post deleted.", status: "success" });
     },
+    onError: showError("Couldn't delete post"),
   });
 
   const saveMutation = useMutation({
@@ -100,26 +92,27 @@ function PostCard({ post, groupPost = false }) {
       ? () => saveGroupPost(post.postId, saved)
       : () => savePost(post.postId, saved),
     onSuccess: () => {
-      queryClient.invalidateQueries(["saved", post.postId]);
+      queryClient.invalidateQueries(["saved"]);
       queryClient.invalidateQueries(["savedPosts"]);
       toast({
         title: saved?.includes(post.postId) ? "Post unsaved." : "Post saved.",
         status: "success",
-        duration: 3000,
-        position: "top",
       });
     },
+    onError: showError("Couldn't update saved posts"),
   });
 
   function handleLike() {
+    if (likeMutation.isLoading) return;
     likeMutation.mutate(likes?.includes(user.userId));
   }
 
   function handleDelete() {
-    deleteMutation.mutate();
+    return deleteMutation.mutateAsync().catch(() => {});
   }
 
   function handleSave() {
+    if (saveMutation.isLoading) return;
     saveMutation.mutate();
   }
 
@@ -135,11 +128,8 @@ function PostCard({ post, groupPost = false }) {
       <CardHeader pb="10px" display="flex" gap="15px" alignItems="center">
         <Avatar
           size="sm"
-          src={
-            post.profileImage?.startsWith("http")
-              ? post.profileImage
-              : `http://localhost:8001/public/upload/${post.profileImage}`
-          }
+          name={post.name}
+          src={getImageUrl(post.profileImage)}
           onClick={() => navigate(`/profile/${post.userId}`)}
           cursor="pointer"
         />
@@ -156,6 +146,7 @@ function PostCard({ post, groupPost = false }) {
           saved={saved?.includes(post.postId)}
           onDelete={handleDelete}
           onSave={handleSave}
+          isDeleting={deleteMutation.isLoading}
         />
       </CardHeader>
 
@@ -164,11 +155,7 @@ function PostCard({ post, groupPost = false }) {
 
         {post.image && (
           <Img
-            src={
-              post.image?.startsWith("http")
-                ? post.image
-                : `http://localhost:8001/public/upload/${post.image}`
-            }
+            src={getImageUrl(post.image)}
             alt={post.name}
             w="full"
             maxH="450px"
@@ -204,7 +191,7 @@ function PostCard({ post, groupPost = false }) {
           </Button>
         </HStack>
         <HStack ml="10px">
-          <CommentsModal postId={post.postId} />
+          <CommentsModal postId={post.postId} groupPost={groupPost} />
         </HStack>
         <Spacer />
         <HStack>

@@ -16,6 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchGroupMembers } from "../../queries/groups";
 import Loading from "../Loading";
 import { useNavigate } from "react-router-dom";
+import { getImageUrl } from "../../imageUrl";
 
 function GroupMembers({ groupId }) {
   const navigate = useNavigate();
@@ -59,11 +60,8 @@ function GroupMembers({ groupId }) {
                 >
                   <HStack gap={2}>
                     <Avatar
-                      src={
-                        member.profileImage?.startsWith("http")
-                          ? member.profileImage
-                          : `http://localhost:8001/public/upload/${member.profileImage}`
-                      }
+                      name={member.name}
+                      src={getImageUrl(member.profileImage)}
                       size="md"
                     />
                     <Text>{member.name}</Text>

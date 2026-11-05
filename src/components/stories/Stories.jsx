@@ -1,6 +1,7 @@
 import { Box, Button, HStack, Img, Text } from "@chakra-ui/react";
 import { useAuth } from "../../contexts/AuthContext";
 import { HiOutlinePlus } from "react-icons/hi";
+import { getImageUrl } from "../../imageUrl";
 
 function Stories() {
   const { user } = useAuth();
@@ -43,7 +44,10 @@ function Stories() {
       {user && (
         <Box position="relative" flex={1} minW="100px">
           <Img
-            src={user.image}
+            src={getImageUrl(user.profileImage)}
+            fallback={
+              <Box h="200px" w="full" borderRadius="10px" bgColor="bgColor.400" />
+            }
             alt={user.name}
             h="200px"
             w="full"

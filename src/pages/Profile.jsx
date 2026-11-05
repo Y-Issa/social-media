@@ -11,7 +11,7 @@ import {
   Text,
   Avatar,
 } from "@chakra-ui/react";
-import { Navigate, useLocation } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import {
   FaEllipsisVertical,
   FaFacebook,
@@ -31,10 +31,15 @@ import {
   fetchRelationships,
   toggleFollow,
 } from "../queries/profile";
+import { getImageUrl } from "../imageUrl";
+import { errorMessage } from "../axios";
+import Loading from "../components/Loading";
+import { useToast } from "@chakra-ui/react";
 
 function Profile() {
   const { user: currentUser } = useAuth();
-  const userId = useLocation().pathname.split("/").pop();
+  const { uid: userId } = useParams();
+  const toast = useToast();
 
   const {
     isLoading: userLoading,
@@ -53,27 +58,34 @@ function Profile() {
     onSuccess: () => {
       queryClient.invalidateQueries(["relationships", userId]);
     },
+    onError: (error) =>
+      toast({ title: "Couldn't update follow", description: errorMessage(error), status: "error" }),
   });
 
   const handleFollow = () => {
+    if (mutation.isLoading) return;
     mutation.mutate(relationships?.includes(currentUser.userId));
   };
 
-  if (!currentUser) return <Navigate to="/login" />;
-  if (userError) return `An error has occurred: ${userError.message}`;
+  if (userError) {
+    return (
+      <Text p={6}>
+        {userError.response?.status === 404 || userError.response?.status === 400
+          ? "This user doesn't exist."
+          : errorMessage(userError)}
+      </Text>
+    );
+  }
 
   return userLoading ? (
-    "Loading..."
+    <Loading />
   ) : (
     <Box>
       <Img
         maxH="200px"
         w="full"
-        src={
-          user.coverImage?.startsWith("http")
-            ? user.coverImage
-            : `http://localhost:8001/public/upload/${user.coverImage}`
-        }
+        src={getImageUrl(user.coverImage)}
+        fallback={<Box h="200px" w="full" bgColor="bgColor.400" mb="10px" />}
         alt="cover-image"
         objectFit="cover"
         objectPosition="top"
@@ -88,11 +100,8 @@ function Profile() {
       >
         <Avatar
           size={{ base: "xl", sm: "2xl" }}
-          src={
-            user.profileImage?.startsWith("http")
-              ? user.profileImage
-              : `http://localhost:8001/public/upload/${user.profileImage}`
-          }
+          name={user.name}
+          src={getImageUrl(user.profileImage)}
           mx="auto"
           mt="-50px"
         />
@@ -157,7 +166,12 @@ function Profile() {
             ) : currentUser.userId === user.userId ? (
               <UpdateProfile />
             ) : (
-              <Button mt="10px" colorScheme="primary" onClick={handleFollow}>
+              <Button
+                mt="10px"
+                colorScheme="primary"
+                onClick={handleFollow}
+                isLoading={mutation.isLoading}
+              >
                 {relationships?.includes(currentUser.userId)
                   ? "Unfollow"
                   : "Follow"}

@@ -1,61 +1,58 @@
-import axios from "axios";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { makeRequest } from "../axios";
 
 const AuthContext = createContext();
 
-function AuthProvider({ children }) {
-  const [user, setUser] = useState(
-    JSON.parse(localStorage.getItem("user")) || null
-  );
-
-  useEffect(() => {
-    async function checkTokenValidity() {
-      const token = JSON.parse(localStorage.getItem("token"));
-      if (token) {
-        try {
-          await axios.get("http://localhost:8001/api/auth/check", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            withCredentials: true,
-          });
-        } catch (error) {
-          console.error("Token validation failed:", error);
-          logout();
-        }
-      }
-    }
-
-    checkTokenValidity();
-  }, []);
-
-  async function login({ email, password }) {
-    const response = await axios.post(
-      "http://localhost:8001/api/auth/login",
-      {
-        email,
-        password,
-      },
-      {
-        withCredentials: true,
-      }
-    );
-
-    if (response.status === 200) {
-      localStorage.setItem("token", JSON.stringify(response.data.token));
-      setUser(response.data.user);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-    }
+function readStoredUser() {
+  try {
+    return JSON.parse(localStorage.getItem("user")) || null;
+  } catch {
+    return null;
   }
+}
 
-  function logout() {
+function AuthProvider({ children }) {
+  const queryClient = useQueryClient();
+  const [user, setUser] = useState(readStoredUser);
+
+  const logout = useCallback(() => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setUser(null);
+    // Don't let the next account see the previous one's cached data.
+    queryClient.clear();
+  }, [queryClient]);
+
+  // Any 401 from the API (expired/invalid token) logs out.
+  useEffect(() => {
+    window.addEventListener("auth:logout", logout);
+    return () => window.removeEventListener("auth:logout", logout);
+  }, [logout]);
+
+  // Validate a stored token on startup; the interceptor handles the 401.
+  useEffect(() => {
+    if (localStorage.getItem("token")) {
+      makeRequest.get("/auth/check").catch(() => {});
+    }
+  }, []);
+
+  async function login({ email, password }) {
+    const response = await makeRequest.post("/auth/login", { email, password });
+    queryClient.clear();
+    localStorage.setItem("token", JSON.stringify(response.data.token));
+    localStorage.setItem("user", JSON.stringify(response.data.user));
+    setUser(response.data.user);
+  }
+
+  // Replace the stored user after a profile update.
+  function updateUser(nextUser) {
+    localStorage.setItem("user", JSON.stringify(nextUser));
+    setUser(nextUser);
   }
 
   return (
-    <AuthContext.Provider value={{ login, logout, user }}>
+    <AuthContext.Provider value={{ login, logout, updateUser, user }}>
       {children}
     </AuthContext.Provider>
   );

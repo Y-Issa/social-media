@@ -9,6 +9,7 @@ import {
 import GroupCard from "../components/group/GroupCard";
 import Loading from "../components/Loading";
 import CreateGroup from "../components/group/CreateGroup";
+import { errorMessage } from "../axios";
 
 function Groups() {
   const toast = useToast();
@@ -38,21 +39,20 @@ function Groups() {
       queryClient.invalidateQueries(["groups"]);
       queryClient.invalidateQueries(["joinedGroups"]);
       toast({
-        title: variables.isMember
-          ? "Left Group Successfully"
-          : "Joined Group Successfully",
+        title: variables.isMember ? "You left the group." : "You joined the group.",
         status: "success",
-        duration: 3000,
-        position: "top",
       });
     },
+    onError: (error) =>
+      toast({ title: "Something went wrong", description: errorMessage(error), status: "error" }),
   });
 
-  const handleToggleMembership = async (groupId, isMember) => {
-    await toggleMembershipMutation.mutateAsync({ groupId, isMember });
-  };
+  const handleToggleMembership = (groupId, isMember) =>
+    toggleMembershipMutation.mutateAsync({ groupId, isMember }).catch(() => {});
 
-  console.log(joinedGroups, groups);
+  const togglingId = toggleMembershipMutation.isLoading
+    ? toggleMembershipMutation.variables?.groupId
+    : null;
 
   return (
     <>
@@ -69,6 +69,7 @@ function Groups() {
               group={group}
               isMember={true}
               onToggleMembership={handleToggleMembership}
+              isToggling={togglingId === group.groupId}
             />
           ))
         ) : (
@@ -88,6 +89,7 @@ function Groups() {
               group={group}
               isMember={false}
               onToggleMembership={handleToggleMembership}
+              isToggling={togglingId === group.groupId}
             />
           ))
         ) : (

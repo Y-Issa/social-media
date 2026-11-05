@@ -4,14 +4,12 @@ import {
   Heading,
   Text,
   Button,
-  FormControl,
-  Input,
   VStack,
   Spacer,
   useToast,
 } from "@chakra-ui/react";
 import { useState } from "react";
-import { Form, Link, useNavigate } from "react-router-dom";
+import { Form, Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import FormControlInput from "../components/FormControlInput";
 
@@ -22,16 +20,21 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const { login } = useAuth();
+  const { login, user } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
     let localError = null;
+    setIsSubmitting(true);
     try {
       await login({ email, password });
     } catch (error) {
-      localError = error.response.data || "Unkown Error Occured.";
+      localError = error.response
+        ? error.response.data || "Unknown error occurred."
+        : "Could not reach the server.";
     } finally {
+      setIsSubmitting(false);
       toast({
         position: "top",
         title: localError ? "Error" : "Success",
@@ -46,6 +49,8 @@ function Login() {
       localError = null;
     }
   }
+
+  if (user && !isSubmitting) return <Navigate to="/" />;
 
   return (
     <Box
@@ -111,6 +116,7 @@ function Login() {
               color="primary.50"
               _hover={{ bgColor: "primary.600" }}
               w="full"
+              isLoading={isSubmitting}
             >
               Login
             </Button>

@@ -1,10 +1,16 @@
-import { Outlet } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import Navbar from "../components/navigation/Navbar";
 import { Grid, GridItem } from "@chakra-ui/react";
 import Leftbar from "../components/navigation/Leftbar";
 import Rightbar from "../components/navigation/Rightbar";
+import { useAuth } from "../contexts/AuthContext";
 
 function RootLayout() {
+  const { user } = useAuth();
+
+  // Every page under the layout requires a logged-in user.
+  if (!user) return <Navigate to="/login" />;
+
   return (
     <>
       <Navbar />

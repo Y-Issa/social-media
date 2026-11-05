@@ -14,10 +14,10 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { useDarkMode } from "./contexts/DarkModeContext";
 import { theme_dark, theme_light } from "./theme";
 import Home from "./pages/Home";
-import Login from "./pages/login";
+import Login from "./pages/Login";
 import RootLayout from "./layout/RootLayout";
-import Profile from "./pages/profile";
-import Register from "./pages/register";
+import Profile from "./pages/Profile";
+import Register from "./pages/Register";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import SavedPosts from "./pages/SavedPosts";
 import Groups from "./pages/Groups";
@@ -46,7 +46,12 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ChakraProvider theme={isDark ? theme_dark : theme_light}>
+      <ChakraProvider
+        theme={isDark ? theme_dark : theme_light}
+        toastOptions={{
+          defaultOptions: { position: "top", duration: 4000, isClosable: true },
+        }}
+      >
         <AuthProvider>
           <ReactQueryDevtools initialIsOpen={false} />
           <RouterProvider router={router} />

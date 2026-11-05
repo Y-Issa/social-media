@@ -8,16 +8,17 @@ import {
   VStack,
   useToast,
 } from "@chakra-ui/react";
-import axios from "axios";
 import { useState } from "react";
-import { Form, Link, useNavigate } from "react-router-dom";
+import { makeRequest } from "../axios";
+import { Form, Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import FormControlInput from "../components/FormControlInput";
 
 function Register() {
   const toast = useToast();
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, user } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -33,13 +34,17 @@ function Register() {
   async function handleSubmit(e) {
     e.preventDefault();
     let localError = null;
+    setIsSubmitting(true);
     try {
-      await axios.post("http://localhost:8001/api/auth/register", formData);
+      await makeRequest.post("/auth/register", formData);
       await login({ email: formData.email, password: formData.password });
       navigate("/");
     } catch (error) {
-      localError = error.response.data;
+      localError = error.response
+        ? error.response.data || "Unknown error occurred."
+        : "Could not reach the server.";
     } finally {
+      setIsSubmitting(false);
       toast({
         position: "top",
         title: localError ? "Error" : "Success",
@@ -50,6 +55,8 @@ function Register() {
       });
     }
   }
+
+  if (user && !isSubmitting) return <Navigate to="/" />;
 
   return (
     <Box
@@ -104,6 +111,7 @@ function Register() {
               color="primary.50"
               _hover={{ bgColor: "primary.600" }}
               w="full"
+              isLoading={isSubmitting}
             >
               Sign Up
             </Button>

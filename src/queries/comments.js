@@ -1,11 +1,8 @@
 import { makeRequest } from "../axios";
-import { getAuthHeaders } from "../getAuthHeaders";
 
 export async function fetchComments(postId) {
   try {
-    const res = await makeRequest.get(`/comments/${postId}`, {
-      headers: getAuthHeaders(),
-    });
+    const res = await makeRequest.get(`/comments/${postId}`);
     return res.data;
   } catch (error) {
     console.error("Error fetching comments:", error);
@@ -14,8 +11,6 @@ export async function fetchComments(postId) {
 }
 
 export async function addComment({ postId, newComment }) {
-  const res = await makeRequest.post(`/comments/${postId}`, newComment, {
-    headers: getAuthHeaders(),
-  });
+  const res = await makeRequest.post(`/comments/${postId}`, newComment);
   return res.data;
 }

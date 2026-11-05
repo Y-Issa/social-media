@@ -4,11 +4,11 @@ import {
   Button,
   Card,
   CardHeader,
-  HStack,
   Heading,
+  HStack,
+  Stack,
   Text,
-  VStack,
-  useBreakpointValue,
+  useDisclosure,
   useToast,
 } from "@chakra-ui/react";
 import GroupMembers from "./GroupMembers";
@@ -16,121 +16,109 @@ import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { deleteGroup } from "../../queries/groups";
 import { useAuth } from "../../contexts/AuthContext";
+import { getImageUrl } from "../../imageUrl";
+import { errorMessage } from "../../axios";
+import ConfirmDialog from "../ConfirmDialog";
 
-const GroupCard = ({ group, isMember, onToggleMembership }) => {
+const GroupCard = ({ group, isMember, onToggleMembership, isToggling = false }) => {
   const toast = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const displayVertical = useBreakpointValue({ base: true, sm: false });
-
   const queryClient = useQueryClient();
-  const mutation = useMutation({
+  const confirmDelete = useDisclosure();
+  const confirmLeave = useDisclosure();
+  const isOwner = user.userId === group.createdBy;
+
+  const deleteMutation = useMutation({
     mutationFn: deleteGroup,
     onSuccess: () => {
       queryClient.invalidateQueries(["groups"]);
       queryClient.invalidateQueries(["joinedGroups"]);
-      toast({
-        title: "Group Deleted Successfully",
-        status: "success",
-        duration: 3000,
-        position: "top",
-      });
+      confirmDelete.onClose();
+      toast({ title: "Group deleted.", status: "success" });
     },
+    onError: (error) =>
+      toast({ title: "Couldn't delete group", description: errorMessage(error), status: "error" }),
   });
-
-  async function handleDeleteGroup() {
-    await mutation.mutateAsync(group.groupId);
-  }
 
   return (
     <Card bgColor="bgColor.100" color="textColor.100" mt="10px">
       <CardHeader>
         <HStack spacing={4} alignItems="start">
-          <Avatar src={group.image} />
-          <Box flex="1">
-            <Heading size={displayVertical ? "sm" : "md"}>{group.name}</Heading>
-            <Text
-              fontSize={displayVertical ? "xs" : "sm"}
-              color="textColor.300"
-            >
+          <Avatar name={group.name} src={getImageUrl(group.image)} />
+          <Box flex="1" minW={0}>
+            <Heading size={{ base: "sm", sm: "md" }}>{group.name}</Heading>
+            <Text fontSize={{ base: "xs", sm: "sm" }} color="textColor.300">
               {group.description}
             </Text>
           </Box>
           <GroupMembers groupId={group.groupId} />
         </HStack>
-        {displayVertical ? (
-          <VStack mt={3} alignItems="flex-start" spacing={2} w="full">
-            {isMember ? (
-              <>
-                <Button
-                  colorScheme="primary"
-                  size="sm"
-                  w="full"
-                  onClick={() => navigate(`/groups/${group.groupId}`)}
-                >
-                  View
-                </Button>
-                <Button
-                  colorScheme="red"
-                  size="sm"
-                  w="full"
-                  onClick={() => onToggleMembership(group.groupId, true)}
-                >
-                  Leave
-                </Button>
-                {user.userId === group.createdBy && <Button>Delete</Button>}
-              </>
-            ) : (
+
+        <Stack
+          direction={{ base: "column", sm: "row" }}
+          justifyContent="flex-end"
+          mt={3}
+          spacing={2}
+        >
+          {isMember ? (
+            <>
               <Button
                 colorScheme="primary"
                 size="sm"
-                w="full"
-                onClick={() => onToggleMembership(group.groupId, false)}
+                onClick={() => navigate(`/groups/${group.groupId}`)}
               >
-                Join
+                View
               </Button>
-            )}
-          </VStack>
-        ) : (
-          <HStack justifyContent="flex-end" mt={3}>
-            {isMember ? (
-              <>
-                <Button
-                  colorScheme="primary"
-                  size="sm"
-                  onClick={() => navigate(`/groups/${group.groupId}`)}
-                >
-                  View
-                </Button>
+              {!isOwner && (
                 <Button
                   colorScheme="red"
+                  variant="outline"
                   size="sm"
-                  onClick={() => onToggleMembership(group.groupId, true)}
+                  onClick={confirmLeave.onOpen}
                 >
                   Leave
                 </Button>
-                {user.userId === group.createdBy && (
-                  <Button
-                    colorScheme="red"
-                    size="sm"
-                    onClick={handleDeleteGroup}
-                  >
-                    Delete
-                  </Button>
-                )}
-              </>
-            ) : (
-              <Button
-                colorScheme="primary"
-                size="sm"
-                onClick={() => onToggleMembership(group.groupId, false)}
-              >
-                Join
-              </Button>
-            )}
-          </HStack>
-        )}
+              )}
+              {isOwner && (
+                <Button colorScheme="red" size="sm" onClick={confirmDelete.onOpen}>
+                  Delete
+                </Button>
+              )}
+            </>
+          ) : (
+            <Button
+              colorScheme="primary"
+              size="sm"
+              isLoading={isToggling}
+              onClick={() => onToggleMembership(group.groupId, false)}
+            >
+              Join
+            </Button>
+          )}
+        </Stack>
       </CardHeader>
+
+      <ConfirmDialog
+        isOpen={confirmDelete.isOpen}
+        onClose={confirmDelete.onClose}
+        onConfirm={() => deleteMutation.mutate(group.groupId)}
+        isLoading={deleteMutation.isLoading}
+        title={`Delete "${group.name}"?`}
+        body="All of the group's posts will be deleted. This can't be undone."
+      />
+      <ConfirmDialog
+        isOpen={confirmLeave.isOpen}
+        onClose={confirmLeave.onClose}
+        onConfirm={async () => {
+          await onToggleMembership(group.groupId, true);
+          confirmLeave.onClose();
+        }}
+        isLoading={isToggling}
+        title={`Leave "${group.name}"?`}
+        body="You can rejoin at any time."
+        confirmLabel="Leave"
+      />
     </Card>
   );
 };

@@ -1,5 +1,6 @@
 import { Avatar, Box, Text, HStack, VStack, Spacer } from "@chakra-ui/react";
 import { formatDistanceToNow } from "date-fns";
+import { getImageUrl } from "../../imageUrl";
 
 function CommentList({ comments }) {
   return comments?.map((comment) => {
@@ -19,7 +20,7 @@ function CommentList({ comments }) {
         py="10px"
       >
         <HStack spacing="10px">
-          <Avatar size="sm" src={comment.profileImage} />
+          <Avatar size="sm" src={getImageUrl(comment.profileImage)} />
           <VStack
             align="start"
             spacing="5px"

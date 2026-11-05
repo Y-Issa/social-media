@@ -21,8 +21,9 @@ import {
   FaLocationDot,
   FaTwitter,
 } from "react-icons/fa6";
-import { useAuth } from "../contexts/AuthContext";
-import UpdateProfile from "../components/profile/UpdateProfile";
+import { useAuth } from "../../contexts/AuthContext";
+import UpdateProfile from "./UpdateProfile";
+import { getImageUrl } from "../../imageUrl";
 
 function UserInfo({ user, relationshipsPending, relationships, handleFollow }) {
   const { user: currentUser } = useAuth();
@@ -32,11 +33,7 @@ function UserInfo({ user, relationshipsPending, relationships, handleFollow }) {
       <Img
         maxH="200px"
         w="full"
-        src={
-          user.coverImage?.startsWith("http")
-            ? user.coverImage
-            : `http://localhost:8001/public/upload/${user.coverImage}`
-        }
+        src={getImageUrl(user.coverImage)}
         alt="cover-image"
         objectFit="cover"
         objectPosition="top"
@@ -51,11 +48,7 @@ function UserInfo({ user, relationshipsPending, relationships, handleFollow }) {
       >
         <Avatar
           size={{ base: "xl", sm: "2xl" }}
-          src={
-            user.profileImage?.startsWith("http")
-              ? user.profileImage
-              : `http://localhost:8001/public/upload/${user.profileImage}`
-          }
+          src={getImageUrl(user.profileImage)}
           mx="auto"
           mt="-50px"
         />

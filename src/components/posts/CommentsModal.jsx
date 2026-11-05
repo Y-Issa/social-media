@@ -17,15 +17,17 @@ import Loading from "../Loading";
 import CommentList from "./CommentList";
 import CommentForm from "./CommentForm";
 import { fetchComments } from "../../queries/comments";
+import { fetchGroupComments } from "../../queries/groups";
 
-function CommentsModal({ postId }) {
+function CommentsModal({ postId, groupPost = false }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [comment, setComment] = useState("");
   const { user } = useAuth();
 
   const { isLoading, error, data } = useQuery({
     queryKey: ["comments", postId],
-    queryFn: () => fetchComments(postId),
+    queryFn: () =>
+      groupPost ? fetchGroupComments(postId) : fetchComments(postId),
   });
 
   return (
@@ -42,7 +44,13 @@ function CommentsModal({ postId }) {
         onClick={onOpen}
       >
         <HiOutlineChatBubbleOvalLeftEllipsis fontSize="24px" />
-        <Text ml={1}>{data?.length === 0 ? "" : data?.length} comments</Text>
+        <Text ml={1}>
+          {data
+            ? data.length === 1
+              ? "1 comment"
+              : `${data.length} comments`
+            : "Comments"}
+        </Text>
       </Button>
 
       <Modal isOpen={isOpen} onClose={onClose} scrollBehavior="inside">
@@ -78,6 +86,7 @@ function CommentsModal({ postId }) {
           </ModalBody>
           <CommentForm
             postId={postId}
+            groupPost={groupPost}
             comment={comment}
             setComment={setComment}
             user={user}

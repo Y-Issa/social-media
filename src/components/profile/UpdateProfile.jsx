@@ -21,11 +21,12 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateProfile, uploadImage } from "../../queries/profile";
+import { errorMessage } from "../../axios";
 
 function UpdateProfile() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
-  const { user, login } = useAuth();
+  const { user, updateUser } = useAuth();
   const [profileImage, setProfileImage] = useState(user.profileImage || "");
   const [coverImage, setCoverImage] = useState(user.coverImage || "");
   const [name, setName] = useState(user.name);
@@ -39,13 +40,16 @@ function UpdateProfile() {
 
   const mutation = useMutation({
     mutationFn: (newProfle) => updateProfile(newProfle),
-    onSuccess: () => {
+    onSuccess: (updatedUser) => {
+      updateUser({ ...user, ...updatedUser });
       queryClient.invalidateQueries(["user"]);
-      const email = user.email;
-      const password = newPassword ? newPassword : oldPassword;
-      login({ email, password });
+      // Name/avatar appear on posts and comments too.
+      queryClient.invalidateQueries(["posts"]);
+      queryClient.invalidateQueries(["GroupPosts"]);
+      queryClient.invalidateQueries(["comments"]);
       setNewPassword("");
       setOldPassword("");
+      onClose();
 
       toast({
         position: "top",
@@ -60,7 +64,7 @@ function UpdateProfile() {
       toast({
         position: "top",
         title: "Error",
-        description: error.response.data || "An unknown error occurred",
+        description: errorMessage(error),
         status: "error",
         variant: "left-accent",
         duration: 4000,
@@ -74,12 +78,24 @@ function UpdateProfile() {
     let profileUrl = profileImage;
 
     if (isUpload) {
-      coverUrl =
-        coverImage instanceof File ? await uploadImage(coverImage) : coverUrl;
-      profileUrl =
-        profileImage instanceof File
-          ? await uploadImage(profileImage)
-          : profileUrl;
+      try {
+        coverUrl =
+          coverImage instanceof File ? await uploadImage(coverImage) : coverUrl;
+        profileUrl =
+          profileImage instanceof File
+            ? await uploadImage(profileImage)
+            : profileUrl;
+      } catch (error) {
+        toast({
+          position: "top",
+          title: "Upload failed",
+          description: errorMessage(error, "Could not upload image"),
+          status: "error",
+          variant: "left-accent",
+          duration: 4000,
+        });
+        return;
+      }
     }
 
     mutation.mutate({
@@ -91,7 +107,6 @@ function UpdateProfile() {
       coverImage: coverUrl,
       profileImage: profileUrl,
     });
-    onClose();
   }
 
   return (
@@ -271,7 +286,13 @@ function UpdateProfile() {
                   </>
                 )}
               </HStack>
-              <Button type="submit" mt={4} colorScheme="primary" w="full">
+              <Button
+                type="submit"
+                mt={4}
+                colorScheme="primary"
+                w="full"
+                isLoading={mutation.isLoading}
+              >
                 Update Profile
               </Button>
             </Form>

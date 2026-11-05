@@ -6,26 +6,29 @@ import {
   Input,
   InputGroup,
   InputLeftElement,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
   Spacer,
   Text,
 } from "@chakra-ui/react";
 import { HiOutlineMail, HiOutlineSearch } from "react-icons/hi";
 import {
   HiOutlineBell,
-  HiOutlineHome,
   HiOutlineMoon,
   HiOutlineSquares2X2,
   HiOutlineSun,
-  HiOutlineUser,
 } from "react-icons/hi2";
 import { Link, useNavigate } from "react-router-dom";
 import { useDarkMode } from "../../contexts/DarkModeContext";
 import { useAuth } from "../../contexts/AuthContext";
+import { getImageUrl } from "../../imageUrl";
 
 function Navbar() {
   const navigate = useNavigate();
   const { isDark, toggleDarkMode } = useDarkMode();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   return (
     user && (
       <HStack
@@ -60,15 +63,32 @@ function Navbar() {
           <HiOutlineMail />
           <HiOutlineBell />
         </HStack>
-        <HStack
-          _hover={{ cursor: "pointer" }}
-          onClick={() => {
-            navigate(`/profile/${user.userId}`);
-          }}
-        >
-          <Avatar size="sm" src={user.profileImage} />
-          <Text display={{ base: "none", sm: "block" }}>{user.name}</Text>
-        </HStack>
+        <Menu placement="bottom-end">
+          <MenuButton as={Button} variant="ghost" px={2} _hover={{ bgColor: "bgColor.400" }}>
+            <HStack>
+              <Avatar size="sm" name={user.name} src={getImageUrl(user.profileImage)} />
+              <Text display={{ base: "none", sm: "block" }}>{user.name}</Text>
+            </HStack>
+          </MenuButton>
+          <MenuList bgColor="bgColor.100" borderColor="bgColor.400" zIndex="dropdown">
+            <MenuItem bgColor="bgColor.100" onClick={() => navigate(`/profile/${user.userId}`)}>
+              Profile
+            </MenuItem>
+            <MenuItem bgColor="bgColor.100" onClick={() => navigate("/saved")}>
+              Saved posts
+            </MenuItem>
+            <MenuItem
+              bgColor="bgColor.100"
+              color="red.500"
+              onClick={() => {
+                logout();
+                navigate("/login");
+              }}
+            >
+              Log out
+            </MenuItem>
+          </MenuList>
+        </Menu>
       </HStack>
     )
   );
