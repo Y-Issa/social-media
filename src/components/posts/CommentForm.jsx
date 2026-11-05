@@ -1,22 +1,17 @@
-import {
-  Avatar,
-  Button,
-  FormControl,
-  Input,
-  InputGroup,
-  ModalFooter,
-  useToast,
-} from "@chakra-ui/react";
-import { HiOutlineChevronDoubleRight } from "react-icons/hi2";
+import { Avatar, Flex, IconButton, Input, useToast } from "@chakra-ui/react";
+import { LuSend } from "react-icons/lu";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { addComment } from "../../queries/comments";
-import { updatePostInCaches } from "../../queries/postCache";
+import { addComment, commentKeys } from "../../queries/comments";
+import { bumpCommentCount } from "../../queries/postCache";
 import { getImageUrl } from "../../imageUrl";
 import { errorMessage } from "../../axios";
 
 export const MAX_COMMENT_LENGTH = 1000;
 
-function CommentForm({ postId, comment, setComment, user }) {
+// Flush single-line reply input at the end of a thread.
+function CommentForm({ postId, user, autoFocus = false }) {
+  const [comment, setComment] = useState("");
   const queryClient = useQueryClient();
   const toast = useToast();
 
@@ -24,15 +19,12 @@ function CommentForm({ postId, comment, setComment, user }) {
     mutationFn: (newComment) => addComment({ postId, newComment }),
     onSuccess: () => {
       setComment("");
-      queryClient.invalidateQueries(["comments", postId]);
+      queryClient.invalidateQueries(commentKeys.post(postId));
       // Keep the count on the post in every cached list in step.
-      updatePostInCaches(queryClient, postId, (post) => ({
-        ...post,
-        commentCount: (post.commentCount ?? 0) + 1,
-      }));
+      bumpCommentCount(queryClient, postId, 1);
     },
     onError: (error) => {
-      toast({ title: "Couldn't post comment", description: errorMessage(error), status: "error" });
+      toast({ title: "Couldn't post reply", description: errorMessage(error), status: "error" });
     },
   });
 
@@ -43,32 +35,32 @@ function CommentForm({ postId, comment, setComment, user }) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <ModalFooter>
-        <FormControl>
-          <InputGroup gap="10px" alignItems="center">
-            <Avatar size="sm" name={user.name} src={getImageUrl(user.profileImage)} />
-            <Input
-              placeholder="Type your comment..."
-              borderColor="bgColor.400"
-              focusBorderColor="primary.100"
-              value={comment}
-              maxLength={MAX_COMMENT_LENGTH}
-              onChange={(e) => setComment(e.target.value)}
-            />
-            <Button
-              colorScheme="primary"
-              type="submit"
-              isLoading={mutation.isLoading}
-              isDisabled={!comment.trim()}
-              aria-label="Send comment"
-            >
-              <HiOutlineChevronDoubleRight />
-            </Button>
-          </InputGroup>
-        </FormControl>
-      </ModalFooter>
-    </form>
+    <Flex as="form" onSubmit={handleSubmit} gap={2.5} align="center">
+      <Avatar size="sm" flex="none" name={user.name} src={getImageUrl(user.profileImage)} />
+      <Input
+        variant="flushed"
+        h="32px"
+        fontSize="14px"
+        px={0}
+        placeholder="Write a reply"
+        aria-label="Write a reply"
+        value={comment}
+        maxLength={MAX_COMMENT_LENGTH}
+        onChange={(e) => setComment(e.target.value)}
+        autoFocus={autoFocus}
+        isReadOnly={mutation.isLoading}
+      />
+      <IconButton
+        type="submit"
+        size="sm"
+        variant="ghost"
+        color={comment.trim() ? "accent" : undefined}
+        icon={<LuSend size={16} />}
+        isLoading={mutation.isLoading}
+        isDisabled={!comment.trim()}
+        aria-label="Send reply"
+      />
+    </Flex>
   );
 }
 

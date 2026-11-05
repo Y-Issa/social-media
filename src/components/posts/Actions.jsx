@@ -1,50 +1,70 @@
 import {
-  Button,
+  IconButton,
   Menu,
   MenuButton,
-  MenuList,
+  MenuDivider,
   MenuItem,
+  MenuList,
+  Portal,
   useDisclosure,
 } from "@chakra-ui/react";
-import { FaEllipsis } from "react-icons/fa6";
+import { LuBookmark, LuBookmarkMinus, LuMoreHorizontal, LuPencil, LuTrash2 } from "react-icons/lu";
 import ConfirmDialog from "../ConfirmDialog";
 
-function Actions({ ownPost, saved, onDelete, onSave, isDeleting = false }) {
+// The ⋯ menu on a post. canEdit: the author. canDelete: the author, or the
+// group's owner on the group page.
+function Actions({ saved, canEdit, canDelete, onSave, onEdit, onDelete, isDeleting = false }) {
   const confirm = useDisclosure();
 
   return (
     <>
-      <Menu>
+      <Menu placement="bottom-end" isLazy>
         <MenuButton
-          as={Button}
-          color="textColor.100"
-          variant="unstyled"
+          as={IconButton}
+          size="xs"
+          variant="ghost"
+          w="28px"
+          h="28px"
           aria-label="Post actions"
-        >
-          <FaEllipsis />
-        </MenuButton>
-        <MenuList bgColor="bgColor.300" border="none" p="5px">
-          <MenuItem bgColor="bgColor.200" onClick={onSave}>
-            {saved ? "Unsave" : "Save"}
-          </MenuItem>
-          {ownPost && (
-            <MenuItem bgColor="bgColor.200" color="red.500" onClick={confirm.onOpen}>
-              Delete
+          icon={<LuMoreHorizontal size={18} />}
+        />
+        <Portal>
+          <MenuList>
+            <MenuItem
+              icon={saved ? <LuBookmarkMinus size={16} /> : <LuBookmark size={16} />}
+              onClick={onSave}
+            >
+              {saved ? "Unsave" : "Save"}
             </MenuItem>
-          )}
-        </MenuList>
+            {canEdit && (
+              <MenuItem icon={<LuPencil size={16} />} onClick={onEdit}>
+                Edit
+              </MenuItem>
+            )}
+            {canDelete && (
+              <>
+                <MenuDivider />
+                <MenuItem icon={<LuTrash2 size={16} />} color="danger" onClick={confirm.onOpen}>
+                  Delete
+                </MenuItem>
+              </>
+            )}
+          </MenuList>
+        </Portal>
       </Menu>
-      <ConfirmDialog
-        isOpen={confirm.isOpen}
-        onClose={confirm.onClose}
-        onConfirm={async () => {
-          await onDelete();
-          confirm.onClose();
-        }}
-        isLoading={isDeleting}
-        title="Delete post?"
-        body="This can't be undone."
-      />
+      {canDelete && (
+        <ConfirmDialog
+          isOpen={confirm.isOpen}
+          onClose={confirm.onClose}
+          onConfirm={async () => {
+            const ok = await onDelete();
+            if (ok !== false) confirm.onClose();
+          }}
+          isLoading={isDeleting}
+          title="Delete post?"
+          body={canEdit ? "This can't be undone." : "You're removing this post as the group's owner. This can't be undone."}
+        />
+      )}
     </>
   );
 }

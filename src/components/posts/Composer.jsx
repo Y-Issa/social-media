@@ -2,34 +2,41 @@ import {
   Avatar,
   Box,
   Button,
-  Card,
-  CardBody,
-  CardFooter,
-  CloseButton,
-  HStack,
-  Img,
-  Input,
+  Flex,
+  IconButton,
+  Image,
   Spacer,
-  Text,
   Textarea,
+  Tooltip,
+  VisuallyHidden,
   useToast,
 } from "@chakra-ui/react";
+import { LuImage, LuX } from "react-icons/lu";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../contexts/AuthContext";
 import { uploadImage } from "../../queries/upload";
 import { getImageUrl } from "../../imageUrl";
 import { errorMessage } from "../../axios";
+import { useAutoGrow } from "./useAutoGrow";
+import CharCount from "./CharCount";
 
 export const MAX_POST_LENGTH = 2000;
 
-// Shared post composer for the home feed and group feeds.
-// createFn({ description, image }) performs the request; invalidateKeys are
-// refreshed on success.
-function Composer({ createFn, invalidateKeys = [], placeholder = "What's on your mind?" }) {
+// Shared post composer for the home feed and group feeds, flush at the top
+// of the feed. createFn({ description, image }) performs the request;
+// invalidateKeys are refreshed on success. The left rail's "New post" button
+// focuses the textarea by its id.
+function Composer({
+  createFn,
+  invalidateKeys = [],
+  placeholder = "What's on your mind?",
+  id = "composer",
+}) {
   const [file, setFile] = useState(null);
   const [description, setDescription] = useState("");
   const fileInputRef = useRef(null);
+  const textareaRef = useAutoGrow(description);
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -39,6 +46,7 @@ function Composer({ createFn, invalidateKeys = [], placeholder = "What's on your
 
   const mutation = useMutation({
     mutationFn: async () => {
+      // Upload first; the post only references the stored filename.
       const image = file ? await uploadImage(file) : "";
       return createFn({ description: description.trim(), image });
     },
@@ -67,79 +75,110 @@ function Composer({ createFn, invalidateKeys = [], placeholder = "What's on your
     mutation.mutate();
   }
 
+  function handleKeyDown(e) {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSubmit(e);
+  }
+
   return (
-    <Card
+    <Flex
       as="form"
       onSubmit={handleSubmit}
-      mb="30px"
-      color="textColor.100"
-      bgColor="bgColor.50"
-      borderRadius="2xl"
-      mx={{ base: "10px", lg: "35px" }}
+      gap={3}
+      px={4}
+      pt={3}
+      pb={2}
+      borderBottom="1px solid"
+      borderColor="border"
     >
-      <CardBody>
-        <HStack align="start">
-          <Avatar size="md" name={user.name} src={getImageUrl(user.profileImage)} />
-          <Textarea
-            placeholder={placeholder}
-            bgColor="bgColor.50"
-            focusBorderColor="primary.100"
-            border="none"
-            resize="none"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </HStack>
+      <Avatar size="md" flex="none" name={user.name} src={getImageUrl(user.profileImage)} />
+      <Box flex="1" minW={0}>
+        <VisuallyHidden as="label" htmlFor={id}>
+          New post
+        </VisuallyHidden>
+        <Textarea
+          ref={textareaRef}
+          id={id}
+          variant="unstyled"
+          placeholder={placeholder}
+          rows={1}
+          resize="none"
+          fontSize="17px"
+          lineHeight="24px"
+          minH="48px"
+          py="8px"
+          px={0}
+          borderRadius={0}
+          color="text-primary"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          onKeyDown={handleKeyDown}
+          isDisabled={mutation.isLoading}
+          _disabled={{ opacity: 0.6 }}
+        />
+
         {previewUrl && (
-          <Box position="relative" mt={3} w="fit-content">
-            <Img src={previewUrl} alt="Selected image" maxH="200px" borderRadius="md" />
-            <CloseButton
-              size="sm"
+          <Box position="relative" mt={2} mb={1} w="fit-content" maxW="full">
+            <Image
+              src={previewUrl}
+              alt="Selected image"
+              maxH="240px"
+              borderRadius="sm"
+              border="1px solid"
+              borderColor="border"
+              objectFit="cover"
+            />
+            <IconButton
+              size="xs"
               position="absolute"
-              top={1}
-              right={1}
-              bg="blackAlpha.600"
-              color="white"
+              top={2}
+              right={2}
+              variant="ghost"
+              bg="surface-raised"
+              border="1px solid"
+              borderColor="border"
+              boxShadow="float"
+              color="text-primary"
+              _hover={{ bg: "bg" }}
+              icon={<LuX size={14} />}
               onClick={clearFile}
               aria-label="Remove image"
+              isDisabled={mutation.isLoading}
             />
           </Box>
         )}
-      </CardBody>
-      <CardFooter pt={0}>
-        <HStack w="full">
-          <Button
-            variant="ghost"
-            textColor="textColor.200"
-            _hover={{ bgColor: "bgColor.100" }}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            Add Image
-          </Button>
-          <Input
+
+        <Flex align="center" gap={2} mt={1} ml={-2}>
+          <Tooltip label="Add image" openDelay={300}>
+            <IconButton
+              size="sm"
+              variant="ghost"
+              icon={<LuImage size={18} />}
+              aria-label="Add image"
+              onClick={() => fileInputRef.current?.click()}
+              isDisabled={mutation.isLoading}
+            />
+          </Tooltip>
+          <input
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            display="none"
+            hidden
             onChange={(e) => setFile(e.target.files[0] || null)}
           />
           <Spacer />
-          {description.length > MAX_POST_LENGTH - 200 && (
-            <Text fontSize="sm" color={tooLong ? "red.500" : "textColor.300"}>
-              {MAX_POST_LENGTH - description.length}
-            </Text>
-          )}
+          <CharCount length={description.length} max={MAX_POST_LENGTH} />
           <Button
             type="submit"
-            colorScheme="primary"
+            size="sm"
+            variant="primary"
             isLoading={mutation.isLoading}
             isDisabled={isEmpty || tooLong}
           >
             Post
           </Button>
-        </HStack>
-      </CardFooter>
-    </Card>
+        </Flex>
+      </Box>
+    </Flex>
   );
 }
 

@@ -3,6 +3,9 @@ import {
   Button,
   Checkbox,
   Flex,
+  FormControl,
+  FormErrorMessage,
+  FormLabel,
   Image,
   Modal,
   ModalBody,
@@ -14,6 +17,7 @@ import {
   SimpleGrid,
   Stack,
   Text,
+  Textarea,
   useDisclosure,
   useToast,
 } from "@chakra-ui/react";
@@ -78,11 +82,14 @@ function FilePicker({ label, file, onChange, ratio }) {
   );
 }
 
+const BIO_MAX = 160;
+
 function initialForm(user) {
   return {
     name: user.name || "",
     city: user.city || "",
     website: user.website || "",
+    bio: user.bio || "",
     profileImage: user.profileImage || "",
     coverImage: user.coverImage || "",
     newPassword: "",
@@ -121,6 +128,7 @@ function UpdateProfile({ buttonProps }) {
       form.newPassword && form.newPassword.length < 6
         ? "Use at least 6 characters."
         : null,
+    bio: form.bio.length > BIO_MAX ? `Keep it under ${BIO_MAX} characters.` : null,
   };
 
   const mutation = useMutation({
@@ -130,7 +138,6 @@ function UpdateProfile({ buttonProps }) {
       queryClient.invalidateQueries(["user"]);
       // Name/avatar appear on posts and comments too.
       queryClient.invalidateQueries(["posts"]);
-      queryClient.invalidateQueries(["GroupPosts"]);
       queryClient.invalidateQueries(["comments"]);
       onClose();
       toast({ title: "Profile updated.", status: "success" });
@@ -165,6 +172,7 @@ function UpdateProfile({ buttonProps }) {
       name: form.name.trim(),
       city: form.city,
       website: form.website,
+      bio: form.bio.trim() || null,
       newPassword: form.newPassword,
       oldPassword: form.oldPassword,
       coverImage,
@@ -196,6 +204,30 @@ function UpdateProfile({ buttonProps }) {
                 error={show("name")}
                 isRequired
               />
+              <FormControl isInvalid={form.bio.length > BIO_MAX}>
+                <Flex justify="space-between" align="baseline">
+                  <FormLabel htmlFor="profile-bio">Bio</FormLabel>
+                  <Text
+                    id="profile-bio-count"
+                    textStyle="meta"
+                    color={form.bio.length > BIO_MAX ? "danger" : "text-muted"}
+                    aria-live="polite"
+                  >
+                    {form.bio.length}/{BIO_MAX}
+                  </Text>
+                </Flex>
+                <Textarea
+                  id="profile-bio"
+                  name="bio"
+                  rows={3}
+                  resize="none"
+                  placeholder="A line or two about you"
+                  aria-describedby="profile-bio-count"
+                  value={form.bio}
+                  onChange={set("bio")}
+                />
+                <FormErrorMessage>{errors.bio}</FormErrorMessage>
+              </FormControl>
               <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
                 <FormControlInput
                   label="City"

@@ -32,6 +32,20 @@ export function updatePostInCaches(queryClient, postId, update) {
   );
 }
 
+// Merges a fresh post row from the server into every cached list.
+export function replacePostInCaches(queryClient, row) {
+  if (!row?.postId) return;
+  updatePostInCaches(queryClient, row.postId, (post) => ({ ...post, ...row }));
+}
+
+// Adds delta to the post's commentCount in every cached list.
+export function bumpCommentCount(queryClient, postId, delta) {
+  updatePostInCaches(queryClient, postId, (post) => ({
+    ...post,
+    commentCount: Math.max(0, (post.commentCount ?? 0) + delta),
+  }));
+}
+
 // Removes the post from every list matching queryKey (default: all lists).
 export function removePostFromCaches(queryClient, postId, queryKey = postKeys.all) {
   queryClient.setQueriesData(queryKey, (data) =>

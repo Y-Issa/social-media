@@ -15,20 +15,23 @@ import SoonTag from "../ui/SoonTag";
 import UserMenu from "./UserMenu";
 import { getNavItems, soonItems } from "./navItems";
 import { useNewPost } from "./useNewPost";
+import UnreadBadge, { badgeText } from "../notifications/UnreadBadge";
+import { useUnreadCount } from "../../queries/notifications";
 
 // Shown as a 72px icon rail between md and xl, full 240px rail from xl.
 const full = { base: "none", xl: "flex" };
 const iconOnly = { base: "flex", xl: "none" };
 
-function RailItem({ item, isRail }) {
+function RailItem({ item, isRail, unread = 0 }) {
   const Icon = item.icon;
+  const label = unread ? `${item.label}, ${badgeText(unread)} unread` : item.label;
   return (
     <Tooltip label={item.label} placement="right" isDisabled={!isRail} openDelay={300}>
       <Box
         as={NavLink}
         to={item.to}
         end={item.end}
-        aria-label={item.label}
+        aria-label={label}
         position="relative"
         display="flex"
         alignItems="center"
@@ -58,10 +61,14 @@ function RailItem({ item, isRail }) {
           },
         }}
       >
-        <Icon size={20} aria-hidden />
+        <Box as="span" position="relative" display="inline-flex">
+          <Icon size={20} aria-hidden />
+          <UnreadBadge count={unread} variant="dot" top="-1px" right="-2px" display={iconOnly} />
+        </Box>
         <Text as="span" display={full}>
           {item.label}
         </Text>
+        <UnreadBadge count={unread} ml="auto" display={{ base: "none", xl: "inline-flex" }} />
       </Box>
     </Tooltip>
   );
@@ -100,6 +107,7 @@ function Leftbar() {
   const { user } = useAuth();
   const startPost = useNewPost();
   const isRail = useBreakpointValue({ base: true, xl: false }, { ssr: false });
+  const { data: unread = 0 } = useUnreadCount();
   if (!user) return null;
 
   return (
@@ -125,8 +133,8 @@ function Leftbar() {
 
       <VStack as="ul" listStyleType="none" spacing={0.5} align="stretch" w="full">
         {getNavItems(user).map((item) => (
-          <li key={item.label}>
-            <RailItem item={item} isRail={isRail} />
+          <li key={item.key}>
+            <RailItem item={item} isRail={isRail} unread={item.badge ? unread : 0} />
           </li>
         ))}
       </VStack>

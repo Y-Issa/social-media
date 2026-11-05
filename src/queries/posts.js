@@ -5,8 +5,9 @@ export { uploadImage } from "./upload";
 // Every post list is cursor-paginated and resolves to
 //   { items: Post[], nextCursor: string | null }
 // where a Post is
-//   { postId, description, image, createdAt, userId, name, profileImage,
-//     groupId, groupName, likeCount, commentCount, likedByMe, savedByMe }
+//   { postId, description, image, createdAt, editedAt, userId, name,
+//     profileImage, groupId, groupName, likeCount, commentCount,
+//     likedByMe, savedByMe }
 // (saved posts also carry savedAt). Pass the previous page's nextCursor
 // as `cursor` to get the next page.
 
@@ -41,6 +42,12 @@ export function fetchSavedPosts({ cursor } = {}) {
 
 export async function createPost(newPost) {
   const res = await makeRequest.post("/posts", newPost);
+  return res.data;
+}
+
+// Author only. Resolves to the updated post row (with editedAt set).
+export async function updatePost(postId, description) {
+  const res = await makeRequest.patch(`/posts/${postId}`, { description });
   return res.data;
 }
 

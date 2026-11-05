@@ -19,6 +19,8 @@ import Register from "./pages/Register";
 import SavedPosts from "./pages/SavedPosts";
 import Groups from "./pages/Groups";
 import Group from "./pages/Group";
+import Notifications from "./pages/Notifications";
+import Search from "./pages/Search";
 import RouteError from "./components/ui/RouteError";
 
 const router = createBrowserRouter(
@@ -34,6 +36,8 @@ const router = createBrowserRouter(
           <Route path="saved" element={<SavedPosts />} />
           <Route path="groups" element={<Groups />} />
           <Route path="groups/:groupId" element={<Group />} />
+          <Route path="notifications" element={<Notifications />} />
+          <Route path="search" element={<Search />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Route>
       </Route>

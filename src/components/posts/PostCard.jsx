@@ -1,24 +1,22 @@
 import {
   Avatar,
   Box,
-  Button,
-  Card,
-  CardBody,
-  CardFooter,
-  CardHeader,
-  HStack,
-  Img,
+  Flex,
+  Image,
   Link,
-  Spacer,
   Text,
+  Tooltip,
+  useDisclosure,
   useToast,
 } from "@chakra-ui/react";
-import { HiHeart, HiOutlineHeart, HiOutlineShare } from "react-icons/hi2";
-import { formatDistanceToNow } from "date-fns";
+import { LuBookmark, LuHeart, LuMessageCircle, LuShare } from "react-icons/lu";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
-import CommentsModal from "./CommentsModal";
+import { Link as RouterLink } from "react-router-dom";
 import Actions from "./Actions";
+import Comments from "./Comments";
+import ImageLightbox from "./ImageLightbox";
+import PostEditor from "./PostEditor";
 import { useAuth } from "../../contexts/AuthContext";
 import { deletePost, toggleLike, toggleSave } from "../../queries/posts";
 import {
@@ -30,15 +28,62 @@ import {
 } from "../../queries/postCache";
 import { getImageUrl } from "../../imageUrl";
 import { errorMessage } from "../../axios";
+import { fullTime, isoTime, shortTime } from "./time";
+import { ease, fadeIn, likePop } from "./motion";
 
-// Renders one post from a list row. Counts and likedByMe/savedByMe come
+const Dot = () => (
+  <Text as="span" textStyle="meta" aria-hidden flex="none">
+    ·
+  </Text>
+);
+
+// One button in the action row: 18px icon + mono count, muted → accent.
+function ActionButton({ icon, count, label, isActive = false, onClick, ...props }) {
+  return (
+    <Box
+      as="button"
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      display="inline-flex"
+      alignItems="center"
+      gap={1.5}
+      h="32px"
+      minW="32px"
+      px={2}
+      borderRadius="sm"
+      color={isActive ? "accent" : "text-muted"}
+      transition={`color 120ms ${ease}, background 120ms ${ease}`}
+      _hover={{ color: "accent", bg: "accent-subtle" }}
+      _active={{ color: "accent-hover" }}
+      _focusVisible={{ outline: "none", boxShadow: "outline", color: "accent" }}
+      {...props}
+    >
+      {icon}
+      {count !== undefined && (
+        <Text as="span" fontFamily="mono" fontSize="13px" lineHeight="16px" minW="2ch" textAlign="left">
+          {count}
+        </Text>
+      )}
+    </Box>
+  );
+}
+
+// One post row (see DESIGN.md "Post"). Counts and likedByMe/savedByMe come
 // with the row; like and save update every cached list optimistically.
-// showGroup adds an "in <group>" link for group posts.
-function PostCard({ post, showGroup = true }) {
+// showGroup adds an "in <group>" link for group posts; canModerate lets a
+// group's owner delete any post on the group page.
+function PostCard({ post, showGroup = true, canModerate = false }) {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const toast = useToast();
   const queryClient = useQueryClient();
+  const lightbox = useDisclosure();
+  const [isEditing, setIsEditing] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [likePulse, setLikePulse] = useState(0);
+
+  const isAuthor = user.userId === post.userId;
+  const profile = `/profile/${post.userId}`;
 
   const showError = (title, error) =>
     toast({ title, description: errorMessage(error), status: "error" });
@@ -95,6 +140,7 @@ function PostCard({ post, showGroup = true }) {
 
   function handleLike() {
     if (likeMutation.isLoading) return;
+    if (!post.likedByMe) setLikePulse((n) => n + 1);
     likeMutation.mutate(post.likedByMe);
   }
 
@@ -104,103 +150,198 @@ function PostCard({ post, showGroup = true }) {
   }
 
   function handleDelete() {
-    return deleteMutation.mutateAsync().catch(() => {});
+    return deleteMutation.mutateAsync().then(
+      () => true,
+      () => false
+    );
   }
 
+  async function handleShare() {
+    const url = `${window.location.origin}${profile}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({ title: "Link copied.", status: "success" });
+    } catch {
+      toast({ title: "Couldn't copy the link", description: url, status: "error" });
+    }
+  }
+
+  const groupLink = showGroup && post.groupId && post.groupName;
+
   return (
-    <Card
-      mb="30px"
-      color="textColor.100"
-      bgColor="bgColor.50"
-      borderRadius="2xl"
-      mx={{ base: "10px", lg: "35px" }}
+    <Flex
+      as="article"
+      aria-label={`Post by ${post.name}`}
+      gap={3}
+      px={4}
+      py={3}
+      borderBottom="1px solid"
+      borderColor="border"
+      animation={fadeIn}
     >
-      <CardHeader pb="10px" display="flex" gap="15px" alignItems="center">
-        <Avatar
-          size="sm"
-          name={post.name}
-          src={getImageUrl(post.profileImage)}
-          onClick={() => navigate(`/profile/${post.userId}`)}
-          cursor="pointer"
-        />
-        <Box>
-          <Text>{post.name}</Text>
-          <Text fontSize="10px" textColor="textColor.300">
-            {formatDistanceToNow(new Date(post.createdAt))} ago
-            {showGroup && post.groupId && post.groupName && (
+      <Avatar
+        as={RouterLink}
+        to={profile}
+        size="md"
+        flex="none"
+        name={post.name}
+        src={getImageUrl(post.profileImage)}
+        aria-label={post.name}
+      />
+
+      <Box flex="1" minW={0}>
+        <Flex as="header" align="center" gap={1.5} minH="20px">
+          <Flex align="baseline" gap={1.5} minW={0} flex="1" overflow="hidden" whiteSpace="nowrap">
+            <Link
+              as={RouterLink}
+              to={profile}
+              color="text-primary"
+              fontSize="15px"
+              fontWeight={600}
+              lineHeight="20px"
+              overflow="hidden"
+              textOverflow="ellipsis"
+              flexShrink={1}
+              minW="2ch"
+              _hover={{ color: "text-primary", textDecoration: "underline" }}
+            >
+              {post.name}
+            </Link>
+            <Dot />
+            <Tooltip label={fullTime(post.createdAt)} openDelay={400}>
+              <Text as="time" dateTime={isoTime(post.createdAt)} textStyle="meta" flex="none">
+                {shortTime(post.createdAt)}
+              </Text>
+            </Tooltip>
+            {post.editedAt && (
               <>
-                {" · in "}
-                <Link
-                  as={RouterLink}
-                  to={`/groups/${post.groupId}`}
-                  color="primary.500"
-                >
-                  {post.groupName}
-                </Link>
+                <Dot />
+                <Tooltip label={`Edited ${fullTime(post.editedAt)}`} openDelay={400}>
+                  <Text as="span" textStyle="meta" flex="none">
+                    edited
+                  </Text>
+                </Tooltip>
               </>
             )}
-          </Text>
-        </Box>
+            {groupLink && (
+              <>
+                <Dot />
+                <Text as="span" textStyle="meta" overflow="hidden" textOverflow="ellipsis" minW={0}>
+                  in{" "}
+                  <Link as={RouterLink} to={`/groups/${post.groupId}`} color="text-secondary" fontWeight={500}>
+                    {post.groupName}
+                  </Link>
+                </Text>
+              </>
+            )}
+          </Flex>
+          <Box flex="none" mt={-1} mb={-1} mr={-1.5}>
+            <Actions
+              saved={post.savedByMe}
+              canEdit={isAuthor}
+              canDelete={isAuthor || canModerate}
+              onSave={handleSave}
+              onEdit={() => setIsEditing(true)}
+              onDelete={handleDelete}
+              isDeleting={deleteMutation.isLoading}
+            />
+          </Box>
+        </Flex>
 
-        <Spacer />
-        {/* Group creators may also delete posts in their group; the server
-            decides, so only the author gets the menu item here. */}
-        <Actions
-          ownPost={user.userId === post.userId}
-          saved={post.savedByMe}
-          onDelete={handleDelete}
-          onSave={handleSave}
-          isDeleting={deleteMutation.isLoading}
-        />
-      </CardHeader>
-
-      <CardBody pb="0px">
-        <Text mb="10px" whiteSpace="pre-wrap">
-          {post.description}
-        </Text>
+        {isEditing ? (
+          <PostEditor post={post} onDone={() => setIsEditing(false)} />
+        ) : (
+          post.description && (
+            <Text
+              mt={0.5}
+              maxW="560px"
+              fontSize="15px"
+              lineHeight="22px"
+              color="text-primary"
+              whiteSpace="pre-wrap"
+              overflowWrap="anywhere"
+            >
+              {post.description}
+            </Text>
+          )
+        )}
 
         {post.image && (
-          <Img
-            src={getImageUrl(post.image)}
-            alt={post.name}
-            w="full"
-            maxH="450px"
-            borderRadius="5px"
-          />
+          <>
+            <Box
+              as="button"
+              type="button"
+              display="block"
+              w="full"
+              mt={2.5}
+              borderRadius="sm"
+              overflow="hidden"
+              border="1px solid"
+              borderColor="border"
+              cursor="zoom-in"
+              onClick={lightbox.onOpen}
+              aria-label="Open image"
+              _focusVisible={{ outline: "none", boxShadow: "outline" }}
+            >
+              <Image
+                src={getImageUrl(post.image)}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                w="full"
+                maxH="520px"
+                objectFit="cover"
+                bg="surface-raised"
+              />
+            </Box>
+            <ImageLightbox
+              src={getImageUrl(post.image)}
+              alt={`Image posted by ${post.name}`}
+              isOpen={lightbox.isOpen}
+              onClose={lightbox.onClose}
+            />
+          </>
         )}
-      </CardBody>
-      <CardFooter>
-        <HStack>
-          <Button
-            variant="ghost"
-            _hover={{ color: "primary.500" }}
-            _active={{ color: "primary.500" }}
-            p="0px"
-            onClick={handleLike}
+
+        <Flex as="footer" mt={1.5} ml={-2} h="32px" align="center" justify="space-between" maxW="400px">
+          <ActionButton
+            label={`Replies (${post.commentCount ?? 0})`}
+            icon={<LuMessageCircle size={18} />}
+            count={post.commentCount ?? 0}
+            isActive={showComments}
+            aria-expanded={showComments}
+            onClick={() => setShowComments((open) => !open)}
+          />
+          <ActionButton
+            label={post.likedByMe ? `Unlike (${post.likeCount} likes)` : `Like (${post.likeCount} likes)`}
             aria-pressed={post.likedByMe}
-            aria-label={post.likedByMe ? "Unlike" : "Like"}
-          >
-            {post.likedByMe ? (
-              <Box as={HiHeart} fontSize="24px" color="red.500" />
-            ) : (
-              <HiOutlineHeart fontSize="24px" />
-            )}
-            <Text ml={1}>
-              {post.likeCount} {post.likeCount === 1 ? "like" : "likes"}
-            </Text>
-          </Button>
-        </HStack>
-        <HStack ml="10px">
-          <CommentsModal post={post} />
-        </HStack>
-        <Spacer />
-        <HStack>
-          <Button variant="ghost" _hover={{ color: "primary.500" }} aria-label="Share">
-            <HiOutlineShare fontSize="24px" />
-          </Button>
-        </HStack>
-      </CardFooter>
-    </Card>
+            isActive={post.likedByMe}
+            icon={
+              <Box
+                as="span"
+                key={likePulse}
+                display="inline-flex"
+                animation={likePulse && post.likedByMe ? likePop : undefined}
+              >
+                <LuHeart size={18} fill={post.likedByMe ? "currentColor" : "none"} />
+              </Box>
+            }
+            count={post.likeCount}
+            onClick={handleLike}
+          />
+          <ActionButton
+            label={post.savedByMe ? "Unsave" : "Save"}
+            aria-pressed={post.savedByMe}
+            isActive={post.savedByMe}
+            icon={<LuBookmark size={18} fill={post.savedByMe ? "currentColor" : "none"} />}
+            onClick={handleSave}
+          />
+          <ActionButton label="Copy link" icon={<LuShare size={18} />} onClick={handleShare} />
+        </Flex>
+
+        {showComments && <Comments post={post} />}
+      </Box>
+    </Flex>
   );
 }
 
