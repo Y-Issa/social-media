@@ -1,10 +1,12 @@
+import { Box, Flex } from "@chakra-ui/react";
 import { Navigate, Outlet } from "react-router-dom";
-import Navbar from "../components/navigation/Navbar";
-import { Grid, GridItem } from "@chakra-ui/react";
 import Leftbar from "../components/navigation/Leftbar";
 import Rightbar from "../components/navigation/Rightbar";
+import { MobileHeader, MobileTabBar } from "../components/navigation/MobileNav";
 import { useAuth } from "../contexts/AuthContext";
 
+// Shell: max 1240px. Left rail (72px md–xl, 240px xl+), feed column up to
+// 600px with side borders, right column 320px from lg. The window scrolls.
 function RootLayout() {
   const { user } = useAuth();
 
@@ -12,52 +14,44 @@ function RootLayout() {
   if (!user) return <Navigate to="/login" />;
 
   return (
-    <>
-      <Navbar />
-      <Grid
-        templateColumns="repeat(10, 1fr)"
-        gap={2}
-        overflow="hidden"
-        bgColor="bgColor.200"
-        color="textColor.100"
-      >
-        <GridItem
-          as="aside"
+    <Box minH="100vh" bg="bg" color="text-primary">
+      <MobileHeader />
+      <Flex maxW="1240px" mx="auto" justify="center" align="flex-start">
+        <Box
           display={{ base: "none", md: "block" }}
-          colSpan={{ md: 2, xl: 2 }}
+          flex="none"
+          w={{ md: "72px", xl: "240px" }}
+          alignSelf="stretch"
         >
           <Leftbar />
-        </GridItem>
+        </Box>
 
-        <GridItem
+        <Box
           as="main"
-          colSpan={{ base: 10, md: 5, xl: 5 }}
-          h="92vh"
-          overflowY="scroll"
-          sx={{
-            "&::-webkit-scrollbar": {
-              width: "8px",
-            },
-            "&::-webkit-scrollbar-track": {
-              width: "6px",
-            },
-            "&::-webkit-scrollbar-thumb": {
-              background: "bgColor.500",
-              borderRadius: "full",
-            },
-          }}
+          id="main"
+          flex="1 1 600px"
+          minW={0}
+          maxW="600px"
+          minH="100vh"
+          bg="surface"
+          borderX={{ base: "none", sm: "1px solid" }}
+          borderColor={{ sm: "border" }}
+          pb={{ base: "calc(72px + env(safe-area-inset-bottom))", md: 10 }}
         >
           <Outlet />
-        </GridItem>
+        </Box>
 
-        <GridItem
-          display={{ base: "none", md: "block" }}
-          colSpan={{ md: 3, xl: 3 }}
+        <Box
+          display={{ base: "none", lg: "block" }}
+          flex="none"
+          w="320px"
+          alignSelf="stretch"
         >
           <Rightbar />
-        </GridItem>
-      </Grid>
-    </>
+        </Box>
+      </Flex>
+      <MobileTabBar />
+    </Box>
   );
 }
 

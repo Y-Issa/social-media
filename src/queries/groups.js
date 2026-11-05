@@ -39,54 +39,8 @@ export async function createGroupPost({ groupId, post }) {
   return res.data;
 }
 
-export async function fetchGroupPosts(groupId) {
-  const res = await makeRequest.get(`/groups/${groupId}/posts`);
-  return res.data;
-}
-
-export async function deleteGroupPost(postId) {
-  await makeRequest.delete(`/groups/posts/${postId}`);
-}
-
-export async function fetchGroupComments(postId) {
-  const res = await makeRequest.get(`/groups/${postId}/comments`);
-  return res.data;
-}
-
-export async function addGroupComment({ postId, newComment }) {
-  const res = await makeRequest.post(`/groups/${postId}/comments`, newComment);
-  return res.data;
-}
-
-export async function fetchGroupPostLikes(postId) {
-  const res = await makeRequest.get(`/groups/${postId}/likes`);
-  return res.data;
-}
-
-export async function likeGroupPost(postId, liked) {
-  if (!liked) {
-    return makeRequest.post(`/groups/${postId}/likes`, {});
-  }
-  return makeRequest.delete(`/groups/${postId}/likes`);
-}
-
-export async function saveGroupPost(postId, saved) {
-  if (saved?.includes(postId)) {
-    await makeRequest.delete(`/groups/save/${postId}`);
-  } else {
-    await makeRequest.post(`/groups/save/${postId}`, {});
-  }
-}
-
-export async function fetchSavedGroupPosts() {
-  const res = await makeRequest.get("/groups/save");
-  return res.data;
-}
-
-export async function fetchSavedGroupPostIds() {
-  const res = await makeRequest.get("/groups/save/ids");
-  return res.data;
-}
+// Group post lists live in ./posts (fetchGroupPosts); likes, comments,
+// saves and deletes use the same endpoints as regular posts.
 
 // Group header: { groupId, name, description, image, createdBy, createdAt, memberCount, isMember }
 export async function fetchGroup(groupId) {

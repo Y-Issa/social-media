@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
-import { fetchGroup, fetchGroupPosts, joinGroup } from "../queries/groups";
+import { fetchGroup, joinGroup } from "../queries/groups";
 import Loading from "../components/Loading";
 import {
   Avatar,
@@ -13,7 +13,7 @@ import {
   Text,
   useToast,
 } from "@chakra-ui/react";
-import PostCard from "../components/posts/PostCard";
+import Posts from "../components/posts/Posts";
 import CreateGroupPost from "../components/group/CreateGroupPost";
 import GroupMembers from "../components/group/GroupMembers";
 import { getImageUrl } from "../imageUrl";
@@ -30,13 +30,6 @@ function Group() {
   });
   const group = groupQuery.data;
 
-  const postsQuery = useQuery({
-    queryKey: ["GroupPosts", groupId],
-    queryFn: () => fetchGroupPosts(groupId),
-    // Posts are members-only.
-    enabled: Boolean(group?.isMember),
-  });
-
   const joinMutation = useMutation({
     mutationFn: () => joinGroup(groupId),
     onSuccess: () => {
@@ -44,6 +37,7 @@ function Group() {
       queryClient.invalidateQueries(["groups"]);
       queryClient.invalidateQueries(["joinedGroups"]);
       queryClient.invalidateQueries(["members", groupId]);
+      queryClient.invalidateQueries(["posts", "group", groupId]);
     },
     onError: (error) =>
       toast({ title: "Couldn't join group", description: errorMessage(error), status: "error" }),
@@ -59,8 +53,6 @@ function Group() {
       </Text>
     );
   }
-
-  const posts = postsQuery.data;
 
   return (
     <Box>
@@ -101,19 +93,8 @@ function Group() {
       {group.isMember ? (
         <>
           <CreateGroupPost groupId={groupId} />
-          {postsQuery.isLoading ? (
-            <Loading />
-          ) : postsQuery.error ? (
-            <Text px={10}>{errorMessage(postsQuery.error)}</Text>
-          ) : posts.length === 0 ? (
-            <Text px={10} color="textColor.300">
-              No posts yet. Start the conversation.
-            </Text>
-          ) : (
-            posts.map((post) => (
-              <PostCard key={post.postId} post={post} groupPost={true} />
-            ))
-          )}
+          {/* Posts are members-only, so the list only mounts for members. */}
+          <Posts groupId={groupId} />
         </>
       ) : (
         <Text px={10} color="textColor.300">

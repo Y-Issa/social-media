@@ -1,45 +1,130 @@
 import {
+  Box,
   Button,
   Checkbox,
-  FormControl,
-  FormLabel,
-  HStack,
-  Img,
-  Input,
+  Flex,
+  Image,
   Modal,
   ModalBody,
   ModalCloseButton,
   ModalContent,
+  ModalFooter,
   ModalHeader,
   ModalOverlay,
-  VStack,
+  SimpleGrid,
+  Stack,
+  Text,
   useDisclosure,
   useToast,
 } from "@chakra-ui/react";
-import { Form } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { LuImage } from "react-icons/lu";
+import { useAuth } from "../../contexts/AuthContext";
 import { updateProfile, uploadImage } from "../../queries/profile";
 import { errorMessage } from "../../axios";
+import FormControlInput from "../FormControlInput";
+import FormError from "../ui/FormError";
 
-function UpdateProfile() {
+function useObjectUrl(file) {
+  const [url, setUrl] = useState(null);
+  useEffect(() => {
+    if (!(file instanceof File)) return setUrl(null);
+    const next = URL.createObjectURL(file);
+    setUrl(next);
+    return () => URL.revokeObjectURL(next);
+  }, [file]);
+  return url;
+}
+
+function FilePicker({ label, file, onChange, ratio }) {
+  const inputRef = useRef(null);
+  const preview = useObjectUrl(file);
+  return (
+    <Box>
+      <Text fontSize="13px" fontWeight={500} color="text-secondary" mb={1.5}>
+        {label}
+      </Text>
+      <Flex align="center" gap={3}>
+        <Box
+          w={ratio === "cover" ? "96px" : "40px"}
+          h="40px"
+          flex="none"
+          borderRadius={ratio === "cover" ? "sm" : "full"}
+          border="1px solid"
+          borderColor="border"
+          bg="surface-raised"
+          overflow="hidden"
+        >
+          {preview && <Image src={preview} alt="" w="full" h="full" objectFit="cover" />}
+        </Box>
+        <Button
+          size="sm"
+          variant="secondary"
+          leftIcon={<LuImage size={16} />}
+          onClick={() => inputRef.current?.click()}
+        >
+          {file instanceof File ? "Replace" : "Choose file"}
+        </Button>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+        />
+      </Flex>
+    </Box>
+  );
+}
+
+function initialForm(user) {
+  return {
+    name: user.name || "",
+    city: user.city || "",
+    website: user.website || "",
+    profileImage: user.profileImage || "",
+    coverImage: user.coverImage || "",
+    newPassword: "",
+    oldPassword: "",
+  };
+}
+
+// "Edit profile" button + modal.
+function UpdateProfile({ buttonProps }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
   const { user, updateUser } = useAuth();
-  const [profileImage, setProfileImage] = useState(user.profileImage || "");
-  const [coverImage, setCoverImage] = useState(user.coverImage || "");
-  const [name, setName] = useState(user.name);
-  const [city, setCity] = useState(user.city);
-  const [website, setWebsite] = useState(user.website);
-  const [newPassword, setNewPassword] = useState("");
-  const [oldPassword, setOldPassword] = useState("");
-  const [isUpload, setIsUpload] = useState(false);
-
   const queryClient = useQueryClient();
 
+  const [form, setForm] = useState(() => initialForm(user));
+  const [isUpload, setIsUpload] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [serverError, setServerError] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const set = (field) => (e) =>
+    setForm((f) => ({ ...f, [field]: e?.target ? e.target.value : e }));
+
+  function open() {
+    setForm(initialForm(user));
+    setIsUpload(false);
+    setSubmitted(false);
+    setServerError(null);
+    onOpen();
+  }
+
+  const errors = {
+    name: form.name.trim() ? null : "Enter your name.",
+    oldPassword: form.oldPassword ? null : "Enter your current password to save.",
+    newPassword:
+      form.newPassword && form.newPassword.length < 6
+        ? "Use at least 6 characters."
+        : null,
+  };
+
   const mutation = useMutation({
-    mutationFn: (newProfle) => updateProfile(newProfle),
+    mutationFn: updateProfile,
     onSuccess: (updatedUser) => {
       updateUser({ ...user, ...updatedUser });
       queryClient.invalidateQueries(["user"]);
@@ -47,256 +132,168 @@ function UpdateProfile() {
       queryClient.invalidateQueries(["posts"]);
       queryClient.invalidateQueries(["GroupPosts"]);
       queryClient.invalidateQueries(["comments"]);
-      setNewPassword("");
-      setOldPassword("");
       onClose();
-
-      toast({
-        position: "top",
-        title: "Success",
-        description: "Profile updated successfully",
-        status: "success",
-        variant: "solid",
-        duration: 4000,
-      });
+      toast({ title: "Profile updated.", status: "success" });
     },
-    onError: (error) => {
-      toast({
-        position: "top",
-        title: "Error",
-        description: errorMessage(error),
-        status: "error",
-        variant: "left-accent",
-        duration: 4000,
-      });
-    },
+    onError: (error) => setServerError(errorMessage(error)),
   });
 
   async function handleSubmit(e) {
     e.preventDefault();
-    let coverUrl = coverImage;
-    let profileUrl = profileImage;
+    setSubmitted(true);
+    setServerError(null);
+    if (Object.values(errors).some(Boolean)) return;
 
+    let { coverImage, profileImage } = form;
     if (isUpload) {
+      setIsUploading(true);
       try {
-        coverUrl =
-          coverImage instanceof File ? await uploadImage(coverImage) : coverUrl;
-        profileUrl =
-          profileImage instanceof File
-            ? await uploadImage(profileImage)
-            : profileUrl;
+        if (coverImage instanceof File) coverImage = await uploadImage(coverImage);
+        if (profileImage instanceof File) profileImage = await uploadImage(profileImage);
       } catch (error) {
-        toast({
-          position: "top",
-          title: "Upload failed",
-          description: errorMessage(error, "Could not upload image"),
-          status: "error",
-          variant: "left-accent",
-          duration: 4000,
-        });
+        setServerError(errorMessage(error, "Could not upload the image."));
         return;
+      } finally {
+        setIsUploading(false);
       }
     }
+    // Switching to upload without picking a file keeps the current image.
+    if (!(typeof coverImage === "string")) coverImage = user.coverImage || "";
+    if (!(typeof profileImage === "string")) profileImage = user.profileImage || "";
 
     mutation.mutate({
-      name,
-      city,
-      website,
-      newPassword,
-      oldPassword,
-      coverImage: coverUrl,
-      profileImage: profileUrl,
+      name: form.name.trim(),
+      city: form.city,
+      website: form.website,
+      newPassword: form.newPassword,
+      oldPassword: form.oldPassword,
+      coverImage,
+      profileImage,
     });
   }
 
+  const show = (field) => submitted && errors[field];
+
   return (
     <>
-      <Button onClick={onOpen} mt="10px" colorScheme="primary">
-        Update Profile
+      <Button variant="secondary" onClick={open} {...buttonProps}>
+        Edit profile
       </Button>
 
-      <Modal isOpen={isOpen} onClose={onClose} size="xl">
+      <Modal isOpen={isOpen} onClose={onClose} size="lg" scrollBehavior="inside">
         <ModalOverlay />
-        <ModalContent color="textColor.100" bgColor="bgColor.100" p="15px">
-          <ModalHeader>Update Profile</ModalHeader>
+        <ModalContent as="form" onSubmit={handleSubmit} noValidate>
+          <ModalHeader>Edit profile</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <Form onSubmit={handleSubmit}>
-              <FormControl display="flex" alignItems="center">
-                <FormLabel minW="75px">Name:</FormLabel>
-                <Input
-                  type="text"
-                  name="name"
-                  placeholder="Name"
-                  autoComplete="off"
-                  isRequired
-                  focusBorderColor="primary.100"
-                  borderColor="bgColor.400"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </FormControl>
-              <FormControl mt={4} display="flex" alignItems="center">
-                <FormLabel minW="75px">City:</FormLabel>
-                <Input
-                  type="text"
+            <Stack spacing={4}>
+              <FormControlInput
+                label="Name"
+                name="name"
+                autoComplete="name"
+                value={form.name}
+                onChange={set("name")}
+                error={show("name")}
+                isRequired
+              />
+              <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
+                <FormControlInput
+                  label="City"
                   name="city"
-                  placeholder="City"
-                  autoComplete="off"
-                  focusBorderColor="primary.100"
-                  borderColor="bgColor.400"
-                  value={city || ""}
-                  onChange={(e) => setCity(e.target.value)}
+                  autoComplete="address-level2"
+                  value={form.city}
+                  onChange={set("city")}
                 />
-              </FormControl>
-              <FormControl mt={4} display="flex" alignItems="center">
-                <FormLabel minW="75px">Website:</FormLabel>
-                <Input
-                  type="text"
+                <FormControlInput
+                  label="Website"
                   name="website"
-                  placeholder="Website"
-                  autoComplete="off"
-                  focusBorderColor="primary.100"
-                  borderColor="bgColor.400"
-                  value={website || ""}
-                  onChange={(e) => setWebsite(e.target.value)}
+                  autoComplete="url"
+                  placeholder="example.com"
+                  value={form.website}
+                  onChange={set("website")}
                 />
-              </FormControl>
-              <FormControl mt={4} display="flex" alignItems="center">
-                <FormLabel minW="75px">Password:</FormLabel>
-                <Input
-                  type="password"
-                  name="newPassword"
-                  placeholder="New Password (optional)"
-                  focusBorderColor="primary.100"
-                  borderColor="bgColor.400"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
-              </FormControl>
-              <FormControl mt={4} display="flex" alignItems="center">
-                <FormLabel minW="75px">Confirm:</FormLabel>
-                <Input
-                  type="password"
-                  name="oldPassword"
-                  placeholder="Old Password (required)"
-                  isRequired
-                  focusBorderColor="primary.100"
-                  borderColor="bgColor.400"
-                  value={oldPassword}
-                  onChange={(e) => setOldPassword(e.target.value)}
-                />
-              </FormControl>
-              {!isUpload && (
-                <>
-                  <FormControl mt={4} display="flex" alignItems="center">
-                    <FormLabel maxW="75px">Profile Image:</FormLabel>
-                    <Input
-                      type="text"
+              </SimpleGrid>
+
+              <Box pt={2}>
+                <Flex justify="space-between" align="center" mb={3}>
+                  <Text textStyle="label">Images</Text>
+                  <Checkbox
+                    colorScheme="primary"
+                    size="sm"
+                    isChecked={isUpload}
+                    onChange={(e) => setIsUpload(e.target.checked)}
+                  >
+                    Upload files
+                  </Checkbox>
+                </Flex>
+                {isUpload ? (
+                  <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
+                    <FilePicker label="Profile photo" file={form.profileImage} onChange={set("profileImage")} />
+                    <FilePicker label="Cover image" ratio="cover" file={form.coverImage} onChange={set("coverImage")} />
+                  </SimpleGrid>
+                ) : (
+                  <Stack spacing={4}>
+                    <FormControlInput
+                      label="Profile photo URL"
                       name="profileImage"
-                      placeholder="Profile Image"
-                      autoComplete="off"
-                      focusBorderColor="primary.100"
-                      borderColor="bgColor.400"
-                      value={
-                        typeof profileImage === "string" ? profileImage : ""
-                      }
-                      onChange={(e) => setProfileImage(e.target.value)}
+                      placeholder="https://"
+                      value={typeof form.profileImage === "string" ? form.profileImage : ""}
+                      onChange={set("profileImage")}
                     />
-                  </FormControl>
-                  <FormControl mt={4} display="flex" alignItems="center">
-                    <FormLabel maxW="75px">Cover Image:</FormLabel>
-                    <Input
-                      type="text"
+                    <FormControlInput
+                      label="Cover image URL"
                       name="coverImage"
-                      placeholder="Cover Image"
-                      autoComplete="off"
-                      focusBorderColor="primary.100"
-                      borderColor="bgColor.400"
-                      value={typeof coverImage === "string" ? coverImage : ""}
-                      onChange={(e) => setCoverImage(e.target.value)}
+                      placeholder="https://"
+                      value={typeof form.coverImage === "string" ? form.coverImage : ""}
+                      onChange={set("coverImage")}
                     />
-                  </FormControl>
-                </>
-              )}
-              <HStack mt={2}>
-                <Checkbox
-                  colorScheme="primary"
-                  isChecked={isUpload}
-                  onChange={(e) => setIsUpload(e.target.checked)}
-                >
-                  {isUpload ? "Links?" : "Upload?"}
-                </Checkbox>
-                {isUpload && (
-                  <>
-                    <FormControl display="flex" justifyContent="center">
-                      <Button
-                        variant="ghost"
-                        colorScheme="primary"
-                        onClick={() => {
-                          document
-                            .querySelector('input[name="profileImage"]')
-                            .click();
-                        }}
-                      >
-                        Profile Image
-                        <Input
-                          type="file"
-                          name="profileImage"
-                          placeholder="Profile Image"
-                          focusBorderColor="primary.100"
-                          borderColor="bgColor.400"
-                          display="none"
-                          onChange={(e) => setProfileImage(e.target.files[0])}
-                        />
-                      </Button>
-                    </FormControl>
-                    <FormControl display="flex" justifyContent="center">
-                      <VStack>
-                        {coverImage && coverImage instanceof File && (
-                          <Img
-                            src={URL.createObjectURL(coverImage)}
-                            alt="cover"
-                            w="150px"
-                            borderRadius="xl"
-                          />
-                        )}
-                        <Button
-                          variant="ghost"
-                          colorScheme="primary"
-                          onClick={() => {
-                            document
-                              .querySelector('input[name="coverImage"]')
-                              .click();
-                          }}
-                        >
-                          Cover Image
-                          <Input
-                            type="file"
-                            name="coverImage"
-                            placeholder="Cover Image"
-                            focusBorderColor="primary.100"
-                            borderColor="bgColor.400"
-                            display="none"
-                            onChange={(e) => setCoverImage(e.target.files[0])}
-                          />
-                        </Button>
-                      </VStack>
-                    </FormControl>
-                  </>
+                  </Stack>
                 )}
-              </HStack>
-              <Button
-                type="submit"
-                mt={4}
-                colorScheme="primary"
-                w="full"
-                isLoading={mutation.isLoading}
-              >
-                Update Profile
-              </Button>
-            </Form>
+              </Box>
+
+              <Box pt={2}>
+                <Text textStyle="label" mb={3}>
+                  Password
+                </Text>
+                <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
+                  <FormControlInput
+                    label="New password"
+                    type="password"
+                    name="newPassword"
+                    autoComplete="new-password"
+                    helper="Leave empty to keep it."
+                    value={form.newPassword}
+                    onChange={set("newPassword")}
+                    error={show("newPassword")}
+                  />
+                  <FormControlInput
+                    label="Current password"
+                    type="password"
+                    name="oldPassword"
+                    autoComplete="current-password"
+                    helper="Needed to save changes."
+                    value={form.oldPassword}
+                    onChange={set("oldPassword")}
+                    error={show("oldPassword")}
+                    isRequired
+                  />
+                </SimpleGrid>
+              </Box>
+              <FormError>{serverError}</FormError>
+            </Stack>
           </ModalBody>
+          <ModalFooter>
+            <Button variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              isLoading={mutation.isLoading || isUploading}
+            >
+              Save
+            </Button>
+          </ModalFooter>
         </ModalContent>
       </Modal>
     </>

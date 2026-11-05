@@ -1,74 +1,87 @@
 import {
   Avatar,
   Box,
-  Button,
-  Card,
-  HStack,
+  Flex,
   Modal,
   ModalBody,
+  ModalCloseButton,
   ModalContent,
   ModalHeader,
   ModalOverlay,
+  Skeleton,
   Text,
   useDisclosure,
 } from "@chakra-ui/react";
 import { useQuery } from "@tanstack/react-query";
+import { Link as RouterLink } from "react-router-dom";
 import { fetchGroupMembers } from "../../queries/groups";
-import Loading from "../Loading";
-import { useNavigate } from "react-router-dom";
 import { getImageUrl } from "../../imageUrl";
+import { plural, toHandle } from "../ui/format";
 
-function GroupMembers({ groupId }) {
-  const navigate = useNavigate();
+// Mono "12 members" line that opens the member list.
+function GroupMembers({ groupId, groupName }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const {
-    isLoading: isLoadingMembers,
-    error: errorMembers,
-    data: members,
-  } = useQuery({
+  const { isLoading, error, data: members } = useQuery({
     queryKey: ["members", groupId],
     queryFn: () => fetchGroupMembers(groupId),
   });
-  return isLoadingMembers ? (
-    <Loading />
-  ) : errorMembers ? (
-    <Text>Something Went Wrong!</Text>
-  ) : (
+
+  if (isLoading) return <Skeleton h="12px" w="72px" my="2px" />;
+  if (error) return <Text textStyle="meta">members unavailable</Text>;
+
+  return (
     <>
-      <Button onClick={onOpen} variant="ghost" colorScheme="bgColor">
-        {members?.length === 1
-          ? `${members?.length} Member`
-          : `${members?.length} Members`}
-      </Button>
-      <Modal isOpen={isOpen} onClose={onClose}>
+      <Box
+        as="button"
+        type="button"
+        onClick={onOpen}
+        textStyle="meta"
+        textAlign="left"
+        transition="color 120ms"
+        _hover={{ color: "text-primary", textDecoration: "underline" }}
+        _focusVisible={{ boxShadow: "outline", outline: "none", borderRadius: "sm" }}
+      >
+        {plural(members?.length ?? 0, "member")}
+      </Box>
+
+      <Modal isOpen={isOpen} onClose={onClose} size="sm" scrollBehavior="inside">
         <ModalOverlay />
-        <ModalContent color="textColor.100" bgColor="bgColor.100">
-          <ModalHeader>Group Members</ModalHeader>
-          <ModalBody>
-            <Box>
-              {members?.map((member) => (
-                <Card
-                  key={member.userId}
-                  p={2}
-                  my={2}
-                  color="textColor.100"
-                  bgColor="bgColor.50"
-                  cursor="pointer"
-                  onClick={() => {
-                    navigate(`/profile/${member.userId}`);
-                  }}
-                >
-                  <HStack gap={2}>
-                    <Avatar
-                      name={member.name}
-                      src={getImageUrl(member.profileImage)}
-                      size="md"
-                    />
-                    <Text>{member.name}</Text>
-                  </HStack>
-                </Card>
-              ))}
-            </Box>
+        <ModalContent>
+          <ModalHeader pr={12}>
+            {groupName ? `Members of ${groupName}` : "Members"}
+            <Text textStyle="meta" fontWeight={400} mt={1}>
+              {plural(members.length, "member")}
+            </Text>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody px={0} pb={3}>
+            {members.map((member) => (
+              <Flex
+                as={RouterLink}
+                to={`/profile/${member.userId}`}
+                onClick={onClose}
+                key={member.userId}
+                align="center"
+                gap={3}
+                px={5}
+                py={2.5}
+                borderTop="1px solid"
+                borderColor="border"
+                transition="background 120ms"
+                _hover={{ bg: "surface-raised" }}
+                _focusVisible={{ bg: "surface-raised", outline: "none" }}
+              >
+                <Avatar size="md" name={member.name} src={getImageUrl(member.profileImage)} />
+                <Box minW={0}>
+                  <Text fontSize="15px" fontWeight={600} noOfLines={1}>
+                    {member.name}
+                  </Text>
+                  <Text textStyle="meta" noOfLines={1}>
+                    {toHandle(member)}
+                  </Text>
+                </Box>
+              </Flex>
+            ))}
           </ModalBody>
         </ModalContent>
       </Modal>

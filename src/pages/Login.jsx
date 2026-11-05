@@ -1,136 +1,107 @@
-import {
-  Box,
-  Card,
-  Heading,
-  Text,
-  Button,
-  VStack,
-  Spacer,
-  useToast,
-} from "@chakra-ui/react";
+import { Button, Link, Stack } from "@chakra-ui/react";
 import { useState } from "react";
-import { Form, Link, Navigate, useNavigate } from "react-router-dom";
+import { Link as RouterLink, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { errorMessage } from "../axios";
 import FormControlInput from "../components/FormControlInput";
+import AuthLayout from "../components/ui/AuthLayout";
+import FormError from "../components/ui/FormError";
+import { validateEmail } from "../components/ui/validate";
+
+function validate({ email, password }) {
+  return {
+    email: validateEmail(email),
+    password: password ? null : "Enter your password.",
+  };
+}
 
 function Login() {
   const navigate = useNavigate();
-  const toast = useToast();
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
   const { login, user } = useAuth();
+  const [values, setValues] = useState({ email: "", password: "" });
+  const [touched, setTouched] = useState({});
+  const [submitted, setSubmitted] = useState(false);
+  const [serverError, setServerError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const errors = validate(values);
+  const show = (field) => (submitted || touched[field]) && errors[field];
+
+  function handleChange(e) {
+    const { name, value } = e.target;
+    setValues((v) => ({ ...v, [name]: value }));
+    setServerError(null);
+  }
+  const handleBlur = (e) =>
+    setTouched((t) => ({ ...t, [e.target.name]: true }));
 
   async function handleSubmit(e) {
     e.preventDefault();
-    let localError = null;
+    setSubmitted(true);
+    if (errors.email || errors.password) return;
     setIsSubmitting(true);
     try {
-      await login({ email, password });
+      await login({ email: values.email.trim(), password: values.password });
+      navigate("/");
     } catch (error) {
-      localError = error.response
-        ? error.response.data || "Unknown error occurred."
-        : "Could not reach the server.";
-    } finally {
+      setServerError(errorMessage(error, "Couldn't log you in."));
       setIsSubmitting(false);
-      toast({
-        position: "top",
-        title: localError ? "Error" : "Success",
-        description: localError ? localError : "Logged in successfully",
-        status: localError ? "error" : "success",
-        variant: localError ? "left-accent" : "solid",
-        duration: 4000,
-      });
-      if (!localError) {
-        navigate("/");
-      }
-      localError = null;
     }
   }
 
   if (user && !isSubmitting) return <Navigate to="/" />;
 
   return (
-    <Box
-      display="flex"
-      justifyContent="center"
-      alignItems="center"
-      height="100vh"
-      bgColor="bgColor.300"
+    <AuthLayout
+      title="Log in"
+      subtitle="Welcome back."
+      footer={
+        <>
+          New here?{" "}
+          <Link as={RouterLink} to="/register" fontWeight={600}>
+            Create an account
+          </Link>
+        </>
+      }
     >
-      <Card
-        display="flex"
-        flexDirection="row"
-        bgColor="bgColor.100"
-        color="textColor.100"
-        gap={8}
-        p={8}
-        borderRadius="md"
-        boxShadow="lg"
-        minW="340px"
-        minH={{ base: "auto", sm: "344px" }}
-      >
-        <VStack
-          spacing={4}
-          align="start"
-          maxW={{ base: "200px", md: "300px" }}
-          display={{ base: "none", sm: "flex" }}
-        >
-          <Heading size={{ base: "sm", lg: "xl" }}>Welcome to Communet</Heading>
-          <Text>
-            Connect with friends, share your moments, and explore what's
-            happening around you. Join Communet today and be a part of our
-            growing community. If you already have an account, sign in now!
-          </Text>
-          <Spacer />
-          <Button variant="link" mt={4}>
-            <Link to="/register">Don't have an account? Sign up now!</Link>
+      <form onSubmit={handleSubmit} noValidate>
+        <Stack spacing={4}>
+          <FormControlInput
+            label="Email"
+            type="email"
+            name="email"
+            autoComplete="email"
+            value={values.email}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            error={show("email")}
+            isRequired
+          />
+          <FormControlInput
+            label="Password"
+            type="password"
+            name="password"
+            autoComplete="current-password"
+            value={values.password}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            error={show("password")}
+            isRequired
+          />
+          <FormError>{serverError}</FormError>
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            w="full"
+            isLoading={isSubmitting}
+            mt={2}
+          >
+            Log in
           </Button>
-        </VStack>
-
-        <VStack spacing={4} w="full">
-          <Heading size={{ base: "md", lg: "2xl" }}>Sign In</Heading>
-          <Form onSubmit={handleSubmit}>
-            <FormControlInput
-              label="Email"
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              isRequired
-            />
-            <FormControlInput
-              label="Password"
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              isRequired
-            />
-            <Button
-              type="submit"
-              mt={4}
-              bgColor="primary.500"
-              color="primary.50"
-              _hover={{ bgColor: "primary.600" }}
-              w="full"
-              isLoading={isSubmitting}
-            >
-              Login
-            </Button>
-            <Button
-              variant="link"
-              mt={4}
-              display={{ base: "block", sm: "none" }}
-            >
-              <Link to="/register">Don't have an account? Sign up now!</Link>
-            </Button>
-          </Form>
-        </VStack>
-      </Card>
-    </Box>
+        </Stack>
+      </form>
+    </AuthLayout>
   );
 }
 

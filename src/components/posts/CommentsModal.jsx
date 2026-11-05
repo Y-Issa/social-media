@@ -17,17 +17,19 @@ import Loading from "../Loading";
 import CommentList from "./CommentList";
 import CommentForm from "./CommentForm";
 import { fetchComments } from "../../queries/comments";
-import { fetchGroupComments } from "../../queries/groups";
 
-function CommentsModal({ postId, groupPost = false }) {
+// The count comes from the post row; comments are only fetched while the
+// modal is open.
+function CommentsModal({ post }) {
+  const { postId, commentCount = 0 } = post;
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [comment, setComment] = useState("");
   const { user } = useAuth();
 
   const { isLoading, error, data } = useQuery({
     queryKey: ["comments", postId],
-    queryFn: () =>
-      groupPost ? fetchGroupComments(postId) : fetchComments(postId),
+    queryFn: () => fetchComments(postId),
+    enabled: isOpen,
   });
 
   return (
@@ -45,11 +47,7 @@ function CommentsModal({ postId, groupPost = false }) {
       >
         <HiOutlineChatBubbleOvalLeftEllipsis fontSize="24px" />
         <Text ml={1}>
-          {data
-            ? data.length === 1
-              ? "1 comment"
-              : `${data.length} comments`
-            : "Comments"}
+          {commentCount === 1 ? "1 comment" : `${commentCount} comments`}
         </Text>
       </Button>
 
@@ -86,7 +84,6 @@ function CommentsModal({ postId, groupPost = false }) {
           </ModalBody>
           <CommentForm
             postId={postId}
-            groupPost={groupPost}
             comment={comment}
             setComment={setComment}
             user={user}

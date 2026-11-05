@@ -5,7 +5,7 @@ function CreateGroupPost({ groupId }) {
   return (
     <Composer
       createFn={(post) => createGroupPost({ groupId, post })}
-      invalidateKeys={[["GroupPosts", groupId]]}
+      invalidateKeys={[["posts"]]}
       placeholder="Share something with the group"
     />
   );

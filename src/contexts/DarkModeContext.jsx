@@ -1,30 +1,14 @@
-import { createContext, useContext } from "react";
-import { useLocalStorageState } from "../hooks/useLocalStorageState";
+import { useColorMode } from "@chakra-ui/react";
 
-const DarkModeContect = createContext();
-
+// Thin wrapper over Chakra's color mode, kept so existing callers of
+// useDarkMode() keep working. Chakra persists the choice itself.
 function DarkModeProvider({ children }) {
-  const [isDark, setIsDark] = useLocalStorageState(false, "isDark");
-
-  function toggleDarkMode() {
-    setIsDark((prev) => !prev);
-  }
-
-  return (
-    <DarkModeContect.Provider value={{ isDark, toggleDarkMode }}>
-      {children}
-    </DarkModeContect.Provider>
-  );
+  return children;
 }
 
 function useDarkMode() {
-  const context = useContext(DarkModeContect);
-
-  if (!context) {
-    throw new Error("useDarkMode must be used within a DarkModeProvider");
-  }
-
-  return context;
+  const { colorMode, toggleColorMode } = useColorMode();
+  return { isDark: colorMode === "dark", toggleDarkMode: toggleColorMode };
 }
 
 export { DarkModeProvider, useDarkMode };

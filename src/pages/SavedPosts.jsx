@@ -1,39 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
-import Loading from "../components/Loading";
-import { Box, Text, Heading, VStack } from "@chakra-ui/react";
-import PostCard from "../components/posts/PostCard";
-import { fetchAllSavedPosts } from "../queries/posts";
+import { Box, Heading } from "@chakra-ui/react";
+import Posts from "../components/posts/Posts";
 
+// Saved posts, newest save first. Group posts show which group they're from.
 function SavedPosts() {
-  const {
-    isLoading,
-    error,
-    data: savedPosts,
-  } = useQuery({
-    queryKey: ["savedPosts"],
-    queryFn: fetchAllSavedPosts,
-  });
-
   return (
     <Box mx="auto" maxW="800px" p={4}>
       <Heading mb={4} textAlign="center">
         Your Saved Posts
       </Heading>
-      {isLoading ? (
-        <Loading />
-      ) : error ? (
-        <Text color="red.500" textAlign="center">
-          Something Went Wrong!
-        </Text>
-      ) : (
-        <VStack spacing={4}>
-          {savedPosts?.length > 0 ? (
-            savedPosts.map((post) => <PostCard key={post.postId} post={post} />)
-          ) : (
-            <Text textAlign="center">You haven't saved any posts yet.</Text>
-          )}
-        </VStack>
-      )}
+      <Posts saved />
     </Box>
   );
 }

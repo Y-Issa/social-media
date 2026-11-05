@@ -8,117 +8,107 @@ import {
   CardHeader,
   HStack,
   Img,
+  Link,
   Spacer,
   Text,
   useToast,
 } from "@chakra-ui/react";
 import { HiHeart, HiOutlineHeart, HiOutlineShare } from "react-icons/hi2";
-import CommentsModal from "./CommentsModal";
 import { formatDistanceToNow } from "date-fns";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "../../contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
+import CommentsModal from "./CommentsModal";
 import Actions from "./Actions";
-
+import { useAuth } from "../../contexts/AuthContext";
+import { deletePost, toggleLike, toggleSave } from "../../queries/posts";
 import {
-  fetchLikes,
-  fetchAllSavedIds,
-  likePost,
-  deletePost,
-  savePost,
-} from "../../queries/posts";
-import {
-  deleteGroupPost,
-  fetchGroupPostLikes,
-  likeGroupPost,
-  saveGroupPost,
-} from "../../queries/groups";
+  postKeys,
+  removePostFromCaches,
+  restorePostCaches,
+  snapshotPostCaches,
+  updatePostInCaches,
+} from "../../queries/postCache";
 import { getImageUrl } from "../../imageUrl";
 import { errorMessage } from "../../axios";
 
-function PostCard({ post, groupPost: groupPostProp = false }) {
-  // Saved-posts page mixes both kinds; group posts are tagged there.
-  const groupPost = groupPostProp || Boolean(post.isGroupPost);
+// Renders one post from a list row. Counts and likedByMe/savedByMe come
+// with the row; like and save update every cached list optimistically.
+// showGroup adds an "in <group>" link for group posts.
+function PostCard({ post, showGroup = true }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
   const queryClient = useQueryClient();
 
-  const {
-    isLoading: isLoadingLikes,
-    error: errorLikes,
-    data: likes,
-  } = useQuery({
-    queryKey: ["likes", post.postId],
-    queryFn: groupPost
-      ? () => fetchGroupPostLikes(post.postId)
-      : () => fetchLikes(post.postId),
-  });
-
-  // One shared query for all cards instead of two requests per card.
-  const { data: saved } = useQuery({
-    queryKey: ["saved"],
-    queryFn: fetchAllSavedIds,
-  });
-
-  const showError = (title) => (error) =>
+  const showError = (title, error) =>
     toast({ title, description: errorMessage(error), status: "error" });
 
   const likeMutation = useMutation({
-    mutationFn: groupPost
-      ? (liked) => likeGroupPost(post.postId, liked)
-      : (liked) => likePost(post.postId, liked),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["likes", post.postId]);
+    mutationFn: (liked) => toggleLike(post.postId, liked),
+    onMutate: async (liked) => {
+      const snapshot = await snapshotPostCaches(queryClient);
+      updatePostInCaches(queryClient, post.postId, (p) => ({
+        ...p,
+        likedByMe: !liked,
+        likeCount: Math.max(0, p.likeCount + (liked ? -1 : 1)),
+      }));
+      return { snapshot };
     },
-    onError: showError("Couldn't update like"),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: groupPost
-      ? () => deleteGroupPost(post.postId)
-      : () => deletePost(post.postId),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["posts"]);
-      queryClient.invalidateQueries(["GroupPosts"]);
-      queryClient.invalidateQueries(["savedPosts"]);
-      toast({ title: "Post deleted.", status: "success" });
+    onError: (error, _liked, context) => {
+      restorePostCaches(queryClient, context?.snapshot);
+      showError("Couldn't update like", error);
     },
-    onError: showError("Couldn't delete post"),
+    onSettled: () => queryClient.invalidateQueries(postKeys.all),
   });
 
   const saveMutation = useMutation({
-    mutationFn: groupPost
-      ? () => saveGroupPost(post.postId, saved)
-      : () => savePost(post.postId, saved),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["saved"]);
-      queryClient.invalidateQueries(["savedPosts"]);
-      toast({
-        title: saved?.includes(post.postId) ? "Post unsaved." : "Post saved.",
-        status: "success",
-      });
+    mutationFn: (saved) => toggleSave(post.postId, saved),
+    onMutate: async (saved) => {
+      const snapshot = await snapshotPostCaches(queryClient);
+      updatePostInCaches(queryClient, post.postId, (p) => ({
+        ...p,
+        savedByMe: !saved,
+      }));
+      // Unsaving takes the post off the saved list right away.
+      if (saved) removePostFromCaches(queryClient, post.postId, postKeys.saved);
+      return { snapshot };
     },
-    onError: showError("Couldn't update saved posts"),
+    onSuccess: (_data, saved) => {
+      toast({ title: saved ? "Post unsaved." : "Post saved.", status: "success" });
+    },
+    onError: (error, _saved, context) => {
+      restorePostCaches(queryClient, context?.snapshot);
+      showError("Couldn't update saved posts", error);
+    },
+    onSettled: () => queryClient.invalidateQueries(postKeys.all),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deletePost(post.postId),
+    onSuccess: () => {
+      removePostFromCaches(queryClient, post.postId);
+      queryClient.invalidateQueries(postKeys.all);
+      toast({ title: "Post deleted.", status: "success" });
+    },
+    onError: (error) => showError("Couldn't delete post", error),
   });
 
   function handleLike() {
     if (likeMutation.isLoading) return;
-    likeMutation.mutate(likes?.includes(user.userId));
+    likeMutation.mutate(post.likedByMe);
+  }
+
+  function handleSave() {
+    if (saveMutation.isLoading) return;
+    saveMutation.mutate(post.savedByMe);
   }
 
   function handleDelete() {
     return deleteMutation.mutateAsync().catch(() => {});
   }
 
-  function handleSave() {
-    if (saveMutation.isLoading) return;
-    saveMutation.mutate();
-  }
-
   return (
     <Card
-      key={post.postId}
       mb="30px"
       color="textColor.100"
       bgColor="bgColor.50"
@@ -137,13 +127,27 @@ function PostCard({ post, groupPost: groupPostProp = false }) {
           <Text>{post.name}</Text>
           <Text fontSize="10px" textColor="textColor.300">
             {formatDistanceToNow(new Date(post.createdAt))} ago
+            {showGroup && post.groupId && post.groupName && (
+              <>
+                {" · in "}
+                <Link
+                  as={RouterLink}
+                  to={`/groups/${post.groupId}`}
+                  color="primary.500"
+                >
+                  {post.groupName}
+                </Link>
+              </>
+            )}
           </Text>
         </Box>
 
         <Spacer />
+        {/* Group creators may also delete posts in their group; the server
+            decides, so only the author gets the menu item here. */}
         <Actions
           ownPost={user.userId === post.userId}
-          saved={saved?.includes(post.postId)}
+          saved={post.savedByMe}
           onDelete={handleDelete}
           onSave={handleSave}
           isDeleting={deleteMutation.isLoading}
@@ -151,7 +155,9 @@ function PostCard({ post, groupPost: groupPostProp = false }) {
       </CardHeader>
 
       <CardBody pb="0px">
-        <Text mb="10px">{post.description}</Text>
+        <Text mb="10px" whiteSpace="pre-wrap">
+          {post.description}
+        </Text>
 
         {post.image && (
           <Img
@@ -167,40 +173,29 @@ function PostCard({ post, groupPost: groupPostProp = false }) {
         <HStack>
           <Button
             variant="ghost"
-            _hover={{
-              color: "primary.500",
-            }}
-            _active={{
-              color: "primary.500",
-            }}
+            _hover={{ color: "primary.500" }}
+            _active={{ color: "primary.500" }}
             p="0px"
             onClick={handleLike}
+            aria-pressed={post.likedByMe}
+            aria-label={post.likedByMe ? "Unlike" : "Like"}
           >
-            {isLoadingLikes ? (
-              "Loading..."
-            ) : errorLikes ? (
-              "Error"
-            ) : likes?.includes(user.userId) ? (
+            {post.likedByMe ? (
               <Box as={HiHeart} fontSize="24px" color="red.500" />
             ) : (
               <HiOutlineHeart fontSize="24px" />
             )}
             <Text ml={1}>
-              {isLoadingLikes ? "Loading..." : likes?.length} likes
+              {post.likeCount} {post.likeCount === 1 ? "like" : "likes"}
             </Text>
           </Button>
         </HStack>
         <HStack ml="10px">
-          <CommentsModal postId={post.postId} groupPost={groupPost} />
+          <CommentsModal post={post} />
         </HStack>
         <Spacer />
         <HStack>
-          <Button
-            variant="ghost"
-            _hover={{
-              color: "primary.500",
-            }}
-          >
+          <Button variant="ghost" _hover={{ color: "primary.500" }} aria-label="Share">
             <HiOutlineShare fontSize="24px" />
           </Button>
         </HStack>

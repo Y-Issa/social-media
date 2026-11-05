@@ -22,18 +22,32 @@ function ConfirmDialog({
   const cancelRef = useRef();
 
   return (
-    <AlertDialog isOpen={isOpen} leastDestructiveRef={cancelRef} onClose={onClose}>
+    <AlertDialog
+      isOpen={isOpen}
+      leastDestructiveRef={cancelRef}
+      onClose={onClose}
+      isCentered
+      size="sm"
+      motionPreset="slideInBottom"
+    >
       <AlertDialogOverlay>
-        <AlertDialogContent color="textColor.100" bgColor="bgColor.100">
-          <AlertDialogHeader fontSize="lg" fontWeight="bold">
-            {title}
-          </AlertDialogHeader>
-          <AlertDialogBody>{body}</AlertDialogBody>
-          <AlertDialogFooter gap={3}>
-            <Button ref={cancelRef} onClick={onClose} variant="ghost">
+        <AlertDialogContent>
+          <AlertDialogHeader>{title}</AlertDialogHeader>
+          {body && (
+            <AlertDialogBody color="text-secondary" fontSize="15px">
+              {body}
+            </AlertDialogBody>
+          )}
+          <AlertDialogFooter>
+            <Button ref={cancelRef} onClick={onClose} variant="secondary">
               Cancel
             </Button>
-            <Button colorScheme="red" onClick={onConfirm} isLoading={isLoading}>
+            <Button
+              colorScheme="red"
+              variant="solid"
+              onClick={onConfirm}
+              isLoading={isLoading}
+            >
               {confirmLabel}
             </Button>
           </AlertDialogFooter>

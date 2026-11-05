@@ -10,24 +10,26 @@ import {
 import { HiOutlineChevronDoubleRight } from "react-icons/hi2";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { addComment } from "../../queries/comments";
-import { addGroupComment } from "../../queries/groups";
+import { updatePostInCaches } from "../../queries/postCache";
 import { getImageUrl } from "../../imageUrl";
 import { errorMessage } from "../../axios";
 
 export const MAX_COMMENT_LENGTH = 1000;
 
-function CommentForm({ postId, groupPost = false, comment, setComment, user }) {
+function CommentForm({ postId, comment, setComment, user }) {
   const queryClient = useQueryClient();
   const toast = useToast();
 
   const mutation = useMutation({
-    mutationFn: (newComment) =>
-      groupPost
-        ? addGroupComment({ postId, newComment })
-        : addComment({ postId, newComment }),
+    mutationFn: (newComment) => addComment({ postId, newComment }),
     onSuccess: () => {
       setComment("");
       queryClient.invalidateQueries(["comments", postId]);
+      // Keep the count on the post in every cached list in step.
+      updatePostInCaches(queryClient, postId, (post) => ({
+        ...post,
+        commentCount: (post.commentCount ?? 0) + 1,
+      }));
     },
     onError: (error) => {
       toast({ title: "Couldn't post comment", description: errorMessage(error), status: "error" });
