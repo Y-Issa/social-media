@@ -12,7 +12,8 @@ import { fadeIn } from "./motion";
 
 // Inline thread under a post. Comments are fetched only while it's open.
 // You can delete your own comments, and any comment on your own post.
-function Comments({ post }) {
+// autoFocus focuses the reply input (when the thread was opened by a click).
+function Comments({ post, autoFocus = true }) {
   const { postId } = post;
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -52,7 +53,7 @@ function Comments({ post }) {
       ) : (
         <CommentList comments={comments ?? []} canDelete={canDelete} onDelete={setPending} />
       )}
-      <CommentForm postId={postId} user={user} autoFocus />
+      <CommentForm postId={postId} user={user} autoFocus={autoFocus} />
 
       <ConfirmDialog
         isOpen={Boolean(pending)}

@@ -1,6 +1,7 @@
 import { Avatar, Box, Flex, Skeleton, SkeletonCircle, Text } from "@chakra-ui/react";
 import { getImageUrl } from "../../imageUrl";
 import { fullTime, shortTime } from "../posts/time";
+import { dayHeader, timeRange } from "../events/format";
 
 const strong = (children) => (
   <Text as="span" fontWeight={600} color="text-primary">
@@ -25,6 +26,13 @@ function sentence(n) {
       return <>{actor} started following you</>;
     case "group_join":
       return <>{actor} joined {strong(n.group?.name || "your group")}</>;
+    case "event":
+      return (
+        <>
+          {actor} scheduled {strong(n.event?.title || "an event")}
+          {n.group?.name && <> in {n.group.name}</>}
+        </>
+      );
     default:
       return <>{actor} interacted with you</>;
   }
@@ -44,6 +52,8 @@ function sentenceText(n) {
       return `${name} started following you`;
     case "group_join":
       return `${name} joined ${n.group?.name || "your group"}`;
+    case "event":
+      return `${name} scheduled ${n.event?.title || "an event"}${n.group?.name ? ` in ${n.group.name}` : ""}`;
     default:
       return `${name} interacted with you`;
   }
@@ -52,7 +62,10 @@ function sentenceText(n) {
 // Where a click on the notification goes.
 export function notificationHref(n, currentUserId) {
   if (n.type === "follow") return `/profile/${n.actor?.userId}`;
+  if (n.type === "event") return n.event?.eventId ? `/events/${n.event.eventId}` : "/events";
   if (n.type === "group_join") return n.group?.groupId ? `/groups/${n.group.groupId}` : "/groups";
+  // like / comment: the post's permalink.
+  if (n.post?.postId) return `/post/${n.post.postId}`;
   if (n.post?.groupId) return `/groups/${n.post.groupId}`;
   return `/profile/${currentUserId}`;
 }
@@ -98,6 +111,11 @@ function NotificationRow({ notification: n, onOpen }) {
           {n.post?.excerpt && (
             <Text mt={0.5} fontSize="14px" lineHeight="20px" color="text-muted" noOfLines={1}>
               {n.post.excerpt}
+            </Text>
+          )}
+          {n.type === "event" && n.event?.startsAt && (
+            <Text mt={0.5} textStyle="meta">
+              {dayHeader(n.event.startsAt)} · {timeRange(n.event.startsAt)}
             </Text>
           )}
         </Box>

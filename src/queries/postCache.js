@@ -5,6 +5,8 @@
 //   ["posts", "group", groupId]    group posts
 //   ["posts", "saved"]             saved posts
 // Each cached value is { pages: [{ items, nextCursor }], pageParams }.
+// The single-post permalink lives under ["posts", "detail", postId] and
+// holds one post row; the helpers below update it alongside the lists.
 
 export const postKeys = {
   all: ["posts"],
@@ -12,10 +14,17 @@ export const postKeys = {
   user: (userId) => ["posts", "user", userId],
   group: (groupId) => ["posts", "group", groupId],
   saved: ["posts", "saved"],
+  detail: (postId) => ["posts", "detail", postId],
 };
 
-// Applies fn(items) to every page of an infinite-list value.
+// Applies fn(items) to every page of an infinite-list value. A single post
+// row (the detail query) is treated as a one-item list; removing it keeps
+// the row, since the permalink page handles a deleted post itself.
 function mapItems(data, fn) {
+  if (data?.postId && !data.pages) {
+    const [row] = fn([data]);
+    return row ?? data;
+  }
   if (!data?.pages) return data;
   return {
     ...data,
@@ -51,6 +60,18 @@ export function removePostFromCaches(queryClient, postId, queryKey = postKeys.al
   queryClient.setQueriesData(queryKey, (data) =>
     mapItems(data, (items) => items.filter((post) => post.postId !== postId))
   );
+}
+
+// The post's row from any cached list (or the detail query), or undefined.
+export function findCachedPost(queryClient, postId) {
+  for (const [, data] of queryClient.getQueriesData(postKeys.all)) {
+    if (data?.postId === postId) return data;
+    for (const page of data?.pages ?? []) {
+      const hit = page.items?.find((post) => post.postId === postId);
+      if (hit) return hit;
+    }
+  }
+  return undefined;
 }
 
 // Snapshot of every cached list, for rolling back an optimistic update.

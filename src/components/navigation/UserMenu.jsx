@@ -11,6 +11,7 @@ import {
 } from "@chakra-ui/react";
 import {
   LuBookmark,
+  LuCalendar,
   LuMoreHorizontal,
   LuLogOut,
   LuMoon,
@@ -68,6 +69,9 @@ function UserMenu({ compact = false, placement = "top-start" }) {
         </MenuItem>
         <MenuItem icon={<LuBookmark size={16} />} onClick={() => navigate("/saved")}>
           Saved
+        </MenuItem>
+        <MenuItem icon={<LuCalendar size={16} />} onClick={() => navigate("/events")}>
+          Events
         </MenuItem>
         <MenuItem
           icon={isDark ? <LuSun size={16} /> : <LuMoon size={16} />}

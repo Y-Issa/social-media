@@ -1,8 +1,9 @@
 import { Box, Flex, IconButton } from "@chakra-ui/react";
-import { LuPenSquare, LuSearch } from "react-icons/lu";
+import { LuMail, LuPenSquare, LuSearch } from "react-icons/lu";
 import { Link as RouterLink, NavLink } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useUnreadCount } from "../../queries/notifications";
+import { useMessagesUnreadCount } from "../../queries/messages";
 import UnreadBadge, { badgeText } from "../notifications/UnreadBadge";
 import Wordmark from "../ui/Wordmark";
 import UserMenu from "./UserMenu";
@@ -37,9 +38,30 @@ export function MobileHeader() {
           w="40px"
           h="40px"
         />
+        <MessagesButton />
         <UserMenu compact placement="bottom-end" />
       </Flex>
     </Flex>
+  );
+}
+
+// Messages lives in the top bar on mobile (the tab bar is full).
+function MessagesButton() {
+  const { data: unread = 0 } = useMessagesUnreadCount();
+  return (
+    <Box position="relative">
+      <IconButton
+        as={NavLink}
+        to="/messages"
+        variant="ghost"
+        aria-label={unread ? `Messages, ${badgeText(unread)} unread` : "Messages"}
+        icon={<LuMail size={20} />}
+        w="40px"
+        h="40px"
+        sx={{ "&.active": { color: "accent" } }}
+      />
+      <UnreadBadge count={unread} variant="dot" top="9px" right="9px" />
+    </Box>
   );
 }
 

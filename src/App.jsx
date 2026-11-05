@@ -21,6 +21,10 @@ import Groups from "./pages/Groups";
 import Group from "./pages/Group";
 import Notifications from "./pages/Notifications";
 import Search from "./pages/Search";
+import Post from "./pages/Post";
+import Messages from "./pages/Messages";
+import Events from "./pages/Events";
+import EventDetail from "./components/events/EventDetail";
 import RouteError from "./components/ui/RouteError";
 
 const router = createBrowserRouter(
@@ -38,6 +42,11 @@ const router = createBrowserRouter(
           <Route path="groups/:groupId" element={<Group />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="search" element={<Search />} />
+          <Route path="post/:postId" element={<Post />} />
+          <Route path="messages" element={<Messages />} />
+          <Route path="messages/:conversationId" element={<Messages />} />
+          <Route path="events" element={<Events />} />
+          <Route path="events/:eventId" element={<EventDetail />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Route>
       </Route>

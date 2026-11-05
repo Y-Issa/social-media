@@ -17,6 +17,7 @@ import { getNavItems, soonItems } from "./navItems";
 import { useNewPost } from "./useNewPost";
 import UnreadBadge, { badgeText } from "../notifications/UnreadBadge";
 import { useUnreadCount } from "../../queries/notifications";
+import { useMessagesUnreadCount } from "../../queries/messages";
 
 // Shown as a 72px icon rail between md and xl, full 240px rail from xl.
 const full = { base: "none", xl: "flex" };
@@ -108,6 +109,8 @@ function Leftbar() {
   const startPost = useNewPost();
   const isRail = useBreakpointValue({ base: true, xl: false }, { ssr: false });
   const { data: unread = 0 } = useUnreadCount();
+  const { data: unreadMessages = 0 } = useMessagesUnreadCount();
+  const badges = { notifications: unread, messages: unreadMessages };
   if (!user) return null;
 
   return (
@@ -134,18 +137,21 @@ function Leftbar() {
       <VStack as="ul" listStyleType="none" spacing={0.5} align="stretch" w="full">
         {getNavItems(user).map((item) => (
           <li key={item.key}>
-            <RailItem item={item} isRail={isRail} unread={item.badge ? unread : 0} />
+            <RailItem item={item} isRail={isRail} unread={item.badge ? badges[item.badge] : 0} />
           </li>
         ))}
       </VStack>
 
-      <Box h="1px" bg="border" my={3} mx={{ base: 2, xl: 3 }} />
-
-      <VStack spacing={0.5} align="stretch" w="full">
-        {soonItems.map((item) => (
-          <SoonItem key={item.label} item={item} />
-        ))}
-      </VStack>
+      {soonItems.length > 0 && (
+        <>
+          <Box h="1px" bg="border" my={3} mx={{ base: 2, xl: 3 }} />
+          <VStack spacing={0.5} align="stretch" w="full">
+            {soonItems.map((item) => (
+              <SoonItem key={item.label} item={item} />
+            ))}
+          </VStack>
+        </>
+      )}
 
       <Button
         variant="primary"

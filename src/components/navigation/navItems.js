@@ -8,19 +8,18 @@ import {
   LuUsers,
 } from "react-icons/lu";
 
-// `badge: "notifications"` items show the unread count.
+// `badge: "notifications"` / `badge: "messages"` items show that unread count.
 export function getNavItems(user) {
   return [
     { key: "home", label: "Home", to: "/", icon: LuHome, end: true },
     { key: "notifications", label: "Notifications", to: "/notifications", icon: LuBell, badge: "notifications" },
+    { key: "messages", label: "Messages", to: "/messages", icon: LuMail, badge: "messages" },
     { key: "groups", label: "Groups", to: "/groups", icon: LuUsers },
+    { key: "events", label: "Events", to: "/events", icon: LuCalendar },
     { key: "saved", label: "Saved", to: "/saved", icon: LuBookmark },
     { key: "profile", label: "Profile", to: `/profile/${user?.userId}`, icon: LuUser },
   ];
 }
 
 // Destinations that don't exist yet: shown muted with a SOON tag.
-export const soonItems = [
-  { label: "Messages", icon: LuMail },
-  { label: "Events", icon: LuCalendar },
-];
+export const soonItems = [];

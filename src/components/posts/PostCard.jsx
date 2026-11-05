@@ -72,18 +72,21 @@ function ActionButton({ icon, count, label, isActive = false, onClick, ...props 
 // One post row (see DESIGN.md "Post"). Counts and likedByMe/savedByMe come
 // with the row; like and save update every cached list optimistically.
 // showGroup adds an "in <group>" link for group posts; canModerate lets a
-// group's owner delete any post on the group page.
-function PostCard({ post, showGroup = true, canModerate = false }) {
+// group's owner delete any post on the group page. defaultExpanded opens
+// the replies right away (the permalink page); onDeleted runs after a
+// successful delete, before the lists refetch.
+function PostCard({ post, showGroup = true, canModerate = false, defaultExpanded = false, onDeleted }) {
   const { user } = useAuth();
   const toast = useToast();
   const queryClient = useQueryClient();
   const lightbox = useDisclosure();
   const [isEditing, setIsEditing] = useState(false);
-  const [showComments, setShowComments] = useState(false);
+  const [showComments, setShowComments] = useState(defaultExpanded);
   const [likePulse, setLikePulse] = useState(0);
 
   const isAuthor = user.userId === post.userId;
   const profile = `/profile/${post.userId}`;
+  const permalink = `/post/${post.postId}`;
 
   const showError = (title, error) =>
     toast({ title, description: errorMessage(error), status: "error" });
@@ -132,7 +135,13 @@ function PostCard({ post, showGroup = true, canModerate = false }) {
     mutationFn: () => deletePost(post.postId),
     onSuccess: () => {
       removePostFromCaches(queryClient, post.postId);
-      queryClient.invalidateQueries(postKeys.all);
+      onDeleted?.();
+      // Refetch the lists, but not this post's permalink (it would 404).
+      const detail = postKeys.detail(post.postId).join("/");
+      queryClient.invalidateQueries({
+        queryKey: postKeys.all,
+        predicate: (query) => query.queryKey.join("/") !== detail,
+      });
       toast({ title: "Post deleted.", status: "success" });
     },
     onError: (error) => showError("Couldn't delete post", error),
@@ -157,7 +166,7 @@ function PostCard({ post, showGroup = true, canModerate = false }) {
   }
 
   async function handleShare() {
-    const url = `${window.location.origin}${profile}`;
+    const url = `${window.location.origin}${permalink}`;
     try {
       await navigator.clipboard.writeText(url);
       toast({ title: "Link copied.", status: "success" });
@@ -209,9 +218,18 @@ function PostCard({ post, showGroup = true, canModerate = false }) {
             </Link>
             <Dot />
             <Tooltip label={fullTime(post.createdAt)} openDelay={400}>
-              <Text as="time" dateTime={isoTime(post.createdAt)} textStyle="meta" flex="none">
-                {shortTime(post.createdAt)}
-              </Text>
+              <Link
+                as={RouterLink}
+                to={permalink}
+                textStyle="meta"
+                color="text-muted"
+                flex="none"
+                borderRadius="sm"
+                _hover={{ color: "text-secondary", textDecoration: "underline" }}
+                _focusVisible={{ outline: "none", boxShadow: "outline" }}
+              >
+                <time dateTime={isoTime(post.createdAt)}>{shortTime(post.createdAt)}</time>
+              </Link>
             </Tooltip>
             {post.editedAt && (
               <>
@@ -339,7 +357,7 @@ function PostCard({ post, showGroup = true, canModerate = false }) {
           <ActionButton label="Copy link" icon={<LuShare size={18} />} onClick={handleShare} />
         </Flex>
 
-        {showComments && <Comments post={post} />}
+        {showComments && <Comments post={post} autoFocus={!defaultExpanded} />}
       </Box>
     </Flex>
   );

@@ -40,6 +40,13 @@ export function fetchSavedPosts({ cursor } = {}) {
   return fetchPage("/save", { cursor });
 }
 
+// One post row (same shape as list rows). 404 if it doesn't exist, 403 for
+// a group post when you're not a member.
+export async function fetchPost(postId) {
+  const res = await makeRequest.get(`/posts/${postId}`);
+  return res.data;
+}
+
 export async function createPost(newPost) {
   const res = await makeRequest.post("/posts", newPost);
   return res.data;

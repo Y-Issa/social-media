@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { useAuth } from "../../contexts/AuthContext";
 import { getImageUrl } from "../../imageUrl";
 import UpdateProfile from "./UpdateProfile";
+import MessageButton from "../messages/MessageButton";
 import { plural, toHandle, websiteHref, websiteLabel } from "../ui/format";
 
 // Fine diagonal hatch on surface-raised when there's no cover image.
@@ -107,14 +108,17 @@ function UserInfo({
             ) : isRelationshipsLoading ? (
               <Skeleton h="36px" w="96px" />
             ) : (
-              <Button
-                variant={isFollowing ? "secondary" : "primary"}
-                onClick={onToggleFollow}
-                isLoading={isFollowLoading}
-                minW="96px"
-              >
-                {isFollowing ? "Unfollow" : "Follow"}
-              </Button>
+              <HStack spacing={2}>
+                <MessageButton userId={user.userId} />
+                <Button
+                  variant={isFollowing ? "secondary" : "primary"}
+                  onClick={onToggleFollow}
+                  isLoading={isFollowLoading}
+                  minW="96px"
+                >
+                  {isFollowing ? "Unfollow" : "Follow"}
+                </Button>
+              </HStack>
             )}
           </Box>
         </Flex>

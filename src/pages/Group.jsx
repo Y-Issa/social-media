@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link as RouterLink, useParams } from "react-router-dom";
+import { Link as RouterLink, useParams, useSearchParams } from "react-router-dom";
 import {
   Box,
   Button,
@@ -7,6 +7,11 @@ import {
   Heading,
   Image,
   Skeleton,
+  Tab,
+  TabList,
+  TabPanel,
+  TabPanels,
+  Tabs,
   Text,
   useToast,
 } from "@chakra-ui/react";
@@ -18,6 +23,7 @@ import EmptyState from "../components/ui/EmptyState";
 import Posts from "../components/posts/Posts";
 import CreateGroupPost from "../components/group/CreateGroupPost";
 import GroupMembers from "../components/group/GroupMembers";
+import GroupEvents from "../components/events/GroupEvents";
 import { getImageUrl } from "../imageUrl";
 import { errorMessage } from "../axios";
 
@@ -79,6 +85,10 @@ function Group() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabIndex = searchParams.get("tab") === "events" ? 1 : 0;
+  const setTab = (index) =>
+    setSearchParams(index === 1 ? { tab: "events" } : {}, { replace: true });
 
   const groupQuery = useQuery({
     queryKey: ["group", groupId],
@@ -180,14 +190,25 @@ function Group() {
       </Flex>
 
       {group.isMember ? (
-        <>
-          <CreateGroupPost groupId={groupId} />
-          {/* Posts are members-only, so the list only mounts for members. */}
-          <Posts groupId={groupId} canModerate={isOwner} />
-        </>
+        <Tabs index={tabIndex} onChange={setTab} isLazy>
+          <TabList>
+            <Tab>Posts</Tab>
+            <Tab>Events</Tab>
+          </TabList>
+          <TabPanels>
+            <TabPanel>
+              <CreateGroupPost groupId={groupId} />
+              {/* Posts are members-only, so the list only mounts for members. */}
+              <Posts groupId={groupId} canModerate={isOwner} />
+            </TabPanel>
+            <TabPanel>
+              <GroupEvents groupId={groupId} groupName={group.name} />
+            </TabPanel>
+          </TabPanels>
+        </Tabs>
       ) : (
         <EmptyState title="Members only.">
-          Join {group.name} to read its posts and share your own.
+          Join {group.name} to read its posts, see its events and share your own.
         </EmptyState>
       )}
     </>
